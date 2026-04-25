@@ -5,10 +5,9 @@ import pandas as pd
 import numpy as np
 import concurrent.futures
 
-# ── VERCEL PRODUCTION: Top 40 most liquid NSE F&O stocks only ─────────────
-# Kept small so it finishes within Vercel's 10-second serverless timeout.
-# For full 200-stock scan, run locally: python run_local_api.py
+# ── Complete Nifty 500 + All F&O Universe (~400 unique stocks) ───────────────
 TICKERS = [
+    # ── Nifty 50 ───────────────────────────────────────────────────────────
     "RELIANCE.NS","TCS.NS","HDFCBANK.NS","INFY.NS","ICICIBANK.NS",
     "SBIN.NS","BHARTIARTL.NS","ITC.NS","LT.NS","BAJFINANCE.NS",
     "M&M.NS","ASIANPAINT.NS","TATASTEEL.NS","AXISBANK.NS","MARUTI.NS",
@@ -17,7 +16,85 @@ TICKERS = [
     "HCLTECH.NS","JSWSTEEL.NS","HINDALCO.NS","ADANIENT.NS","ADANIPORTS.NS",
     "DRREDDY.NS","CIPLA.NS","HEROMOTOCO.NS","BAJAJ-AUTO.NS","EICHERMOT.NS",
     "TECHM.NS","HDFCLIFE.NS","SBILIFE.NS","TRENT.NS","HAL.NS",
+    "GRASIM.NS","DIVISLAB.NS","APOLLOHOSP.NS","INDUSINDBK.NS","BRITANNIA.NS",
+    "NESTLEIND.NS","TATACONSUM.NS","BPCL.NS","HINDUNILVR.NS","SHREECEM.NS",
+    # ── Nifty Next 50 / Large Midcap ───────────────────────────────────────
+    "BHEL.NS","BEL.NS","IRFC.NS","PFC.NS","RECLTD.NS","GAIL.NS",
+    "SAIL.NS","NMDC.NS","AMBUJACEM.NS","PNB.NS","BANKBARODA.NS","CANBK.NS",
+    "DLF.NS","GODREJCP.NS","DABUR.NS","COLPAL.NS","MARICO.NS","PIDILITIND.NS",
+    "HAVELLS.NS","VOLTAS.NS","SIEMENS.NS","ABB.NS","CUMMINSIND.NS","ASHOKLEY.NS",
+    "TVSMOTOR.NS","TATACOMM.NS","PERSISTENT.NS","COFORGE.NS","MPHASIS.NS",
+    "SRF.NS","ASTRAL.NS","DIXON.NS","POLYCAB.NS","TATAPOWER.NS",
+    "ATGL.NS","PETRONET.NS","INDHOTEL.NS","CHOLAFIN.NS","MUTHOOTFIN.NS",
+    "IDFCFIRSTB.NS","BANDHANBNK.NS","FEDERALBNK.NS","RBLBANK.NS","AUBANK.NS",
+    "JIOFIN.NS","LODHA.NS","VEDL.NS","SHRIRAMFIN.NS","HDFCAMC.NS",
+    "NIPPONLIFE.NS","ICICIPRAMC.NS","UTIAMC.NS","NAUKRI.NS","DMART.NS",
+    # ── F&O Pharma / Healthcare ────────────────────────────────────────────
+    "AUROPHARMA.NS","LUPIN.NS","ALKEM.NS","TORNTPHARM.NS","IPCALAB.NS",
+    "LALPATHLAB.NS","METROPOLIS.NS","FORTIS.NS","MAXHEALTH.NS",
+    "GLAXO.NS","PFIZER.NS","ABBOTINDIA.NS","SANOFI.NS","NATCOPHARMA.NS",
+    "POLYMED.NS","AARTIIND.NS","GRANULES.NS","GLENMARK.NS",
+    "BIOCON.NS","AJANTPHARM.NS","JBCHEPHARM.NS","ERIS.NS","LAURUSLABS.NS",
+    "STRIDES.NS","SUVEN.NS","NEULANDLAB.NS","SYNGENE.NS",
+    # ── F&O IT / Technology ────────────────────────────────────────────────
+    "LTTS.NS","CYIENT.NS","KPITTECH.NS","TATAELXSI.NS",
+    "RATEGAIN.NS","TANLA.NS","INTELLECT.NS","MASTEK.NS","ZENSAR.NS",
+    "BIRLASOFT.NS","SONATSOFTW.NS","CMSINFO.NS","ECLERX.NS",
+    "DATAMATICS.NS","FIRSTSOURCE.NS","MAPMYINDIA.NS","ROUTE.NS",
+    # ── F&O Auto / EV ──────────────────────────────────────────────────────
+    "EXIDEIND.NS","MOTHERSON.NS","BOSCHLTD.NS","BHARATFORG.NS",
+    "SUNDRMFAST.NS","GABRIEL.NS","CRAFTSMAN.NS","PRICOL.NS",
+    "ENDURANCE.NS","SUPRAJIT.NS","LUMAXTECH.NS",
+    "TIINDIA.NS","SCHAEFFLER.NS","SKFINDIA.NS","TIMKEN.NS",
+    "APOLLOTYRE.NS","MRF.NS","CEATLTD.NS","BALKRISIND.NS","JKTYRE.NS",
+    # ── F&O Infrastructure / Capital Goods ────────────────────────────────
+    "CESC.NS","TORNTPOWER.NS","INOXWIND.NS","SUZLON.NS","THERMAX.NS",
+    "KPIL.NS","NCC.NS","NBCC.NS","RVNL.NS","IRCON.NS","RITES.NS",
+    "RAILVIKAS.NS","GRINFRA.NS","PNCINFRATECH.NS","AHLUCONT.NS","KNRCON.NS",
+    "HCC.NS","ENGINERSIN.NS",
+    # ── F&O Consumer / FMCG ───────────────────────────────────────────────
+    "RADICO.NS","VARUN.NS","VBLLTD.NS","UNITDSPR.NS",
+    "JYOTHYLAB.NS","EMAMILTD.NS","BAJAJCONS.NS","HATSUN.NS",
+    "PGHH.NS","BERGEPAINT.NS","KANSAINER.NS","AKZONOBEL.NS",
+    "SUPREMEIND.NS","APLAPOLLO.NS","BATAINDIA.NS","RELAXO.NS",
+    # ── F&O Metals & Mining ────────────────────────────────────────────────
+    "HINDZINC.NS","NATIONALUM.NS","MOIL.NS","AIAENG.NS","RATNAMANI.NS",
+    "MAHSEAMLES.NS","MIDHANI.NS","WELSPUNIND.NS","JSWENERGY.NS","TINPLATE.NS",
+    # ── F&O Real Estate / Cement ──────────────────────────────────────────
+    "GODREJPROP.NS","PRESTIGE.NS","PHOENIX.NS","BRIGADE.NS","SOBHA.NS",
+    "OBEROIRLTY.NS","KOLTEPATIL.NS","MAHLIFE.NS","SUNTECK.NS",
+    "RAMCOCEM.NS","DALMIA.NS","HEIDELBERG.NS","JKCEMENT.NS","STARCEMENT.NS",
+    "ORIENTCEM.NS","BIRLACORPN.NS","JKPAPER.NS","TNPL.NS",
+    # ── F&O Chemicals / Specialty ─────────────────────────────────────────
+    "DEEPAKNITR.NS","GNFC.NS","ALKYLAMINE.NS","VINATIORGA.NS","NAVINFLUOR.NS",
+    "FLUOROCHEM.NS","PCBL.NS","TATACHEM.NS",
+    "BALAMINES.NS","FINEORG.NS","GALAXYSURF.NS","NOCIL.NS",
+    "GHCL.NS","ATUL.NS","SUDARSCHEM.NS","HFCL.NS",
+    # ── F&O Banking / Finance ─────────────────────────────────────────────
+    "ABCAPITAL.NS","CHOLAHLDNG.NS","PNBHOUSING.NS","LICHSGFIN.NS",
+    "MANAPPURAM.NS","BAJAJHFL.NS","UJJIVANSFB.NS","EQUITASBNK.NS",
+    "ESAFSFB.NS","CSBBANK.NS","SURYODAY.NS","KARURVYSYA.NS","DCBBANK.NS",
+    "INDIAMART.NS","ANGELONE.NS","IIFL.NS","MOFSL.NS","IREDA.NS",
+    "CDSL.NS","BSE.NS","MCX.NS","CAMS.NS","KFINTECH.NS",
+    # ── F&O Telecom / Media ───────────────────────────────────────────────
+    "INDUSTOWER.NS","TTML.NS","TEJASNET.NS",
+    "SAREGAMA.NS","SUNTV.NS","PVRINOX.NS","NETWORK18.NS","ZEEL.NS",
+    # ── F&O Logistics / Transport ─────────────────────────────────────────
+    "BLUEDART.NS","TCI.NS","CONCOR.NS","ALLCARGO.NS",
+    # ── F&O Retail / Hospitality ──────────────────────────────────────────
+    "NYKAA.NS","PAYTM.NS","JUBLFOOD.NS","WESTLIFE.NS",
+    "DEVYANI.NS","SAPPHIRE.NS","VMART.NS","SHOPERSTOP.NS",
+    # ── Adani Group ───────────────────────────────────────────────────────
+    "ADANIGREEN.NS","ADANIPOWER.NS","ADANITRANS.NS","AWL.NS",
+    # ── PSU / Government Enterprises ──────────────────────────────────────
+    "IOC.NS","HINDPETRO.NS","MRPL.NS","CPCL.NS",
+    "OIL.NS","MGL.NS","IGL.NS","GSPL.NS",
+    "SJVN.NS","NHPC.NS","BEML.NS","HUDCO.NS","REC.NS",
+    # ── Others ────────────────────────────────────────────────────────────
+    "POLICYBZR.NS","SPARC.NS","WOCKPHARMA.NS","EDELWEISS.NS",
+    "MOTILALOFS.NS","JSWINFRA.NS",
 ]
+TICKERS = list(dict.fromkeys(TICKERS))  # remove any duplicates
 
 def calculate_atr(df, period=14):
     hl = df['High'] - df['Low']

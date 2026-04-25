@@ -120,9 +120,19 @@ class FullHandler(handler):
 
 
 if __name__ == "__main__":
-    print(f"🚀 Vibe Trading AI — Full Universe Server")
-    print(f"📊 Scanning {len(FULL_TICKERS)} stocks (Nifty 500 + F&O)")
-    print(f"🌐 Open your browser at: http://localhost:3000")
-    print(f"⏳ First scan will take 30-60 seconds...\n")
+    total = len(FULL_TICKERS)
+    print("")
+    print("==========================================")
+    print("  Vibe Trading AI - Full Universe Server")
+    print("==========================================")
+    print(f"Sectors: Nifty50, Next50, F&O, Pharma, IT,")
+    print(f"         Auto, Infra, Metals, Cement, Chem,")
+    print(f"         Banking, Finance, PSU, Midcap, Retail")
+    print("")
+    print(f"TOTAL UNIQUE STOCKS TO SCAN: {total}")
+    print(f"Dashboard: http://localhost:3000")
+    print(f"Note: First scan takes 60-120 seconds")
+    print("==========================================")
+    print("")
     server = HTTPServer(('localhost', 5000), FullHandler)
     server.serve_forever()
