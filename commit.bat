@@ -1,2 +1,2 @@
 git add .
-git commit -m "Fix Vercel timeout: 40 stocks on Vercel, full 200 stocks locally"
+git commit -m "Add full Nifty500 plus all FO stocks to local scanner (450+ stocks)"
