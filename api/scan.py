@@ -142,41 +142,49 @@ def analyze_stock(ticker):
             if risk <= 0: return None
             tpct = 50.0 if 'Multibagger' in ttype else 3.0
             rr = round(tpct / risk, 2)
-            if rr < 0.8: return None
+            if rr < 0.5: return None
             return dict(strategy=strategy, confidence=confidence, stock=name,
                         entry=round(entry,2), sl=round(sl,2), target=round(target,2),
                         target_type=ttype, rr=rr, reason=reason)
 
         setups = []
+        dema_val = float(dema9.iloc[-1])
+        ema_val  = float(ema21.iloc[-1])
+        vol_ratio = round(v1 / v20, 1) if v20 > 0 else 0
 
         # 1. RSI Divergence + Vol Spike — MULTIBAGGER
         cl, pl = float(low.iloc[-1]), float(low20.iloc[-5])
         cr, pr = float(rsi.iloc[-1]), float(rsi_min20.iloc[-5])
-        if cl < pl and cr > pr and cr < 50 and v1 > 2.5*v20 and c > d200:
+        if cl < pl and cr > pr and cr < 55 and v1 > 1.5*v20:
             s = make('RSI Divergence + Vol Spike','77.8%', c, c-2.0*atr_, c*1.50,
-                     'Multibagger 50%+', f'Lower low in price, higher low in RSI. Vol {round(v1/v20,1)}x avg!')
+                     'Multibagger 50%+', f'Lower low price, higher low RSI. Vol {vol_ratio}x avg!')
             if s: setups.append(s)
 
         # 2. DEMA Momentum Spike
-        if c > d50 > d200:
-            vdry  = float(vol.iloc[-4:-1].mean()) < float(vol20.iloc[-2])
-            vspike= v1 > 1.2*v20
-            if float(dema9.iloc[-1]) > float(ema21.iloc[-1]) and vdry and vspike:
+        if c > d50 and dema_val > ema_val:
+            vspike = v1 > 1.0 * v20
+            if vspike:
                 s = make('DEMA Momentum Spike','61.0%', c, c-1.5*atr_, c*1.03,
-                         'Fixed 3%', 'DEMA > EMA21. Volume dried then spiked.')
+                         'Fixed 3%', f'DEMA > EMA21. Vol {vol_ratio}x avg.')
                 if s: setups.append(s)
 
         # 3. Pullback to Value
-        if c > d200 and abs(c-d50)/d50 < 0.05 and rsi_ < 55:
+        if c > d200 and abs(c-d50)/d50 < 0.08 and rsi_ < 60:
             s = make('Pullback to Value','64.4%', c, c-2.0*atr_, c*1.03,
-                     'Fixed 3%', f'Near 50DMA. RSI: {round(rsi_,1)}.')
+                     'Fixed 3%', f'Near 50DMA ({round(abs(c-d50)/d50*100,1)}% away). RSI: {round(rsi_,1)}.')
             if s: setups.append(s)
 
         # 4. Darvas Breakout
         ph50 = float(high50.iloc[-2])
-        if c > ph50 and v1 > 2.0*v20 and c > d200:
+        if c > ph50 and v1 > 1.5*v20:
             s = make('Darvas Breakout','44.6%', c, c-1.5*atr_, c*1.03,
-                     'Fixed 3%', 'Breakout above 50-day high with 2x volume.')
+                     'Fixed 3%', f'Above 50-day high. Vol {vol_ratio}x avg.')
+            if s: setups.append(s)
+
+        # 5. Watchlist — DEMA about to cross (within 1%)
+        if c > d200 and abs(dema_val - ema_val) / ema_val < 0.01 and dema_val < ema_val:
+            s = make('Watchlist - DEMA Near Cross','—', c, c-1.5*atr_, c*1.03,
+                     'Fixed 3%', f'DEMA 9 is {round((ema_val-dema_val)/ema_val*100,2)}% below EMA21. Watch for crossover!')
             if s: setups.append(s)
 
         return setups

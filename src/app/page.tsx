@@ -33,7 +33,12 @@ const STRATEGY_META: Record<string, { icon: string; badge: string; desc: string 
   "Darvas Breakout": {
     icon: "🚀",
     badge: "#d29922",
-    desc: "Breakout — Above 50-day high with 2x volume. Lower confidence (44.6%). Use tight stop loss.",
+    desc: "Breakout — Above 50-day high with 1.5x+ volume. Lower confidence (44.6%). Use tight stop loss.",
+  },
+  "Watchlist - DEMA Near Cross": {
+    icon: "👀",
+    badge: "#8b949e",
+    desc: "WATCH ONLY — DEMA 9 is about to cross EMA 21. Do NOT trade yet. Wait for actual crossover.",
   },
 };
 
@@ -67,6 +72,7 @@ export default function Home() {
     "DEMA Momentum Spike",
     "Pullback to Value",
     "Darvas Breakout",
+    "Watchlist - DEMA Near Cross",
   ];
 
   const totalSetups = setups ? setups.length : 0;
@@ -88,8 +94,8 @@ export default function Home() {
             <span>⚙️ System Controls</span>
           </div>
           <p style={{ marginBottom: "1rem", color: "#8b949e" }}>
-            Scans 70+ liquid NSE F&amp;O stocks across 4 strategies simultaneously. Multibagger setups
-            appear first. Approx <strong>15–30 seconds</strong> to complete.
+            Scans 300+ NSE F&amp;O stocks across 5 strategies simultaneously. Multibagger setups
+            appear first. Approx <strong>60–120 seconds</strong> locally.
           </p>
           <button className="btn" onClick={scanMarket} disabled={loading} id="scan-btn">
             {loading ? (

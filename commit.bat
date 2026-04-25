@@ -1,2 +1,2 @@
 git add .
-git commit -m "Add full Nifty500 plus all FO stocks to local scanner (450+ stocks)"
+git commit -m "Relax filters for more results: 52 setups found, add Watchlist strategy"
