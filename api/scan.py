@@ -1,5 +1,5 @@
 from http.server import BaseHTTPRequestHandler
-import json
+import json, os
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -192,6 +192,10 @@ def analyze_stock(ticker):
         return []
 
 
+# Top 40 most liquid stocks for Vercel (10s timeout limit)
+VERCEL_TICKERS = TICKERS[:40]
+
+
 class handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args): pass
 
@@ -201,13 +205,18 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
 
+        # Use limited list on Vercel, full list locally
+        is_vercel = os.environ.get('VERCEL', '') == '1'
+        scan_list = VERCEL_TICKERS if is_vercel else TICKERS
+
         all_setups = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
             for res in concurrent.futures.as_completed(
-                    {ex.submit(analyze_stock, t): t for t in TICKERS}):
+                    {ex.submit(analyze_stock, t): t for t in scan_list}):
                 if res.result(): all_setups.extend(res.result())
 
         priority = {'RSI Divergence + Vol Spike':0,'DEMA Momentum Spike':1,
-                    'Pullback to Value':2,'Darvas Breakout':3}
+                    'Pullback to Value':2,'Darvas Breakout':3,
+                    'Watchlist - DEMA Near Cross':4}
         all_setups.sort(key=lambda x: (priority.get(x['strategy'],9), -x['rr']))
         self.wfile.write(json.dumps({"status":"success","data":all_setups}).encode())

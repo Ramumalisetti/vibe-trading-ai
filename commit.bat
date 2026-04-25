@@ -1,2 +1,2 @@
 git add .
-git commit -m "Relax filters for more results: 52 setups found, add Watchlist strategy"
+git commit -m "Fix Vercel: auto-detect env, use top 40 stocks on Vercel, full 300 locally"
