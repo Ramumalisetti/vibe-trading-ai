@@ -107,6 +107,22 @@ def calculate_dema(series, period):
     ema2 = ema1.ewm(span=period, adjust=False).mean()
     return 2 * ema1 - ema2
 
+def calculate_hv_rank(close, window=20, lookback=252):
+    """Calculate Historical Volatility Percentile (IV Rank proxy).
+    Returns current annualized HV and its percentile rank over the past year.
+    Low rank = options cheap (good for debit spreads).
+    High rank = options expensive (good for credit spreads)."""
+    log_returns = np.log(close / close.shift(1))
+    hv = log_returns.rolling(window).std() * np.sqrt(252) * 100  # annualized %
+    hv_clean = hv.dropna()
+    if len(hv_clean) < 50:
+        return np.nan, np.nan
+    actual_lookback = min(lookback, len(hv_clean))
+    current_hv = float(hv.iloc[-1])
+    hv_history = hv_clean.iloc[-actual_lookback:]
+    rank = float((hv_history < current_hv).sum() / len(hv_history) * 100)
+    return current_hv, rank
+
 def analyze_stock(ticker):
     try:
         df = yf.download(ticker, period="1y", progress=False)
@@ -187,6 +203,42 @@ def analyze_stock(ticker):
                      'Fixed 3%', f'DEMA 9 is {round((ema_val-dema_val)/ema_val*100,2)}% below EMA21. Watch for crossover!')
             if s: setups.append(s)
 
+        # 6. Options IV Extremes — HV Rank (IV proxy) based spread recommendation
+        #    Low IV Rank  → options cheap  → buy Debit Spread  (Bull Call Spread)
+        #    High IV Rank → options costly → sell Credit Spread (Bear Put Spread)
+        hv_current, hv_rank = calculate_hv_rank(close)
+        if not np.isnan(hv_rank) and not np.isnan(hv_current):
+            if hv_rank < 20 and c > d50 and v1 > 1.2 * v20:
+                # Low IV + Breakout = Bull Call Spread (Debit) — options are cheap
+                sl_price = round(c - 1.5 * atr_, 2)
+                target_price = round(c * 1.05, 2)
+                risk_pct = (c - sl_price) / c * 100
+                reward_pct = 5.0
+                rr = round(reward_pct / risk_pct, 2) if risk_pct > 0 else 0
+                if rr >= 0.5 and risk_pct > 0:
+                    setups.append(dict(
+                        strategy='Options IV Extremes', confidence='65.0%',
+                        stock=name, entry=round(c, 2), sl=sl_price, target=target_price,
+                        target_type='Bull Call Spread',
+                        rr=rr,
+                        reason=f'IV Rank {round(hv_rank,1)}% (LOW). HV: {round(hv_current,1)}%. Vol {vol_ratio}x avg. Options cheap — buy debit spread.'
+                    ))
+            elif hv_rank > 80 and c < ema_val:
+                # High IV + Below EMA21 = Bear Put Spread — options expensive
+                sl_price = round(c + 1.5 * atr_, 2)
+                target_price = round(c * 0.95, 2)
+                risk_pct = (sl_price - c) / c * 100
+                reward_pct = 5.0
+                rr = round(reward_pct / risk_pct, 2) if risk_pct > 0 else 0
+                if rr >= 0.5:
+                    setups.append(dict(
+                        strategy='Options IV Extremes', confidence='70.0%',
+                        stock=name, entry=round(c, 2), sl=sl_price, target=target_price,
+                        target_type='Bear Put Spread',
+                        rr=rr,
+                        reason=f'IV Rank {round(hv_rank,1)}% (HIGH). HV: {round(hv_current,1)}%. Options expensive — sell premium via bear spread.'
+                    ))
+
         return setups
     except Exception:
         return []
@@ -217,6 +269,6 @@ class handler(BaseHTTPRequestHandler):
 
         priority = {'RSI Divergence + Vol Spike':0,'DEMA Momentum Spike':1,
                     'Pullback to Value':2,'Darvas Breakout':3,
-                    'Watchlist - DEMA Near Cross':4}
+                    'Options IV Extremes':4,'Watchlist - DEMA Near Cross':5}
         all_setups.sort(key=lambda x: (priority.get(x['strategy'],9), -x['rr']))
         self.wfile.write(json.dumps({"status":"success","data":all_setups}).encode())

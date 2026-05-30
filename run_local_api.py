@@ -111,7 +111,8 @@ class FullHandler(handler):
                 if res.result(): all_setups.extend(res.result())
 
         priority = {'RSI Divergence + Vol Spike':0,'DEMA Momentum Spike':1,
-                    'Pullback to Value':2,'Darvas Breakout':3}
+                    'Pullback to Value':2,'Darvas Breakout':3,
+                    'Options IV Extremes':4,'Watchlist - DEMA Near Cross':5}
         all_setups.sort(key=lambda x: (priority.get(x['strategy'],9), -x['rr']))
 
         payload = json.dumps({"status":"success","data":all_setups}).encode()

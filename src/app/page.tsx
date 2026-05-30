@@ -40,6 +40,11 @@ const STRATEGY_META: Record<string, { icon: string; badge: string; desc: string 
     badge: "#8b949e",
     desc: "WATCH ONLY — DEMA 9 is about to cross EMA 21. Do NOT trade yet. Wait for actual crossover.",
   },
+  "Options IV Extremes": {
+    icon: "🧮",
+    badge: "#f78166",
+    desc: "IV RANK ANALYSIS — Historical Volatility percentile identifies cheap/expensive options. Low IV → Bull Call Spread. High IV → Bear Put Spread.",
+  },
 };
 
 export default function Home() {
@@ -72,6 +77,7 @@ export default function Home() {
     "DEMA Momentum Spike",
     "Pullback to Value",
     "Darvas Breakout",
+    "Options IV Extremes",
     "Watchlist - DEMA Near Cross",
   ];
 
