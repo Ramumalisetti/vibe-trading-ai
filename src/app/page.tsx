@@ -151,6 +151,112 @@ function TargetBadge({ pct }: { pct: number }) {
   );
 }
 
+// ── History Entry Card ────────────────────────────────────────────────────────
+function HistoryEntryCard({ entry, onDownload }: {
+  entry: HistoryEntry;
+  onDownload: (e: HistoryEntry) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isAI = entry.type === "AI";
+  const color = isAI ? "#e3b341" : "#3fb950";
+
+  // Columns to display based on scan type
+  const aiCols    = ["stock","signal","grade","entry","sl","target","target_pct","rr"];
+  const delCols   = ["stock","close","day_chg_pct","vol_ratio","deliv_pct_today","deliv_pct_prev","market_cap_cr"];
+  const cols      = isAI ? aiCols : delCols;
+  const headers   = isAI
+    ? ["Stock","Signal","Grade","Entry ₹","SL ₹","Target ₹","Target %","R:R"]
+    : ["Stock","Close ₹","Chg %","Vol Spike","Deliv%(T)","Deliv%(P)","Mkt Cap Cr"];
+
+  return (
+    <div style={{ border: `1px solid ${color}33`, borderRadius: 10, overflow: "hidden" }}>
+      {/* Header row */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "0.85rem 1.1rem", cursor: "pointer",
+          background: expanded ? `${color}12` : "#0d1117",
+          transition: "background 0.2s"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.88rem", color: "#8b949e" }}>{entry.date}</span>
+          <span style={{
+            background: `${color}22`, color,
+            padding: "0.15rem 0.55rem", borderRadius: 4, fontSize: "0.8rem", fontWeight: 700
+          }}>
+            {isAI ? "👑 Multibagger Scan" : "📦 Delivery Vol"}
+          </span>
+          <span style={{ background: "#21262d", color: "#c9d1d9", padding: "0.15rem 0.5rem", borderRadius: 4, fontSize: "0.8rem", fontWeight: 700 }}>
+            {entry.total} stock{entry.total !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <div style={{ display: "flex", gap: "0.6rem", alignItems: "center" }}>
+          <button
+            onClick={e => { e.stopPropagation(); onDownload(entry); }}
+            style={{
+              background: "#21262d", color: "#c9d1d9", border: "1px solid #30363d",
+              padding: "0.25rem 0.7rem", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600
+            }}
+          >
+            ⬇️ CSV
+          </button>
+          <span style={{ color: "#8b949e", fontSize: "1.1rem", transition: "transform 0.2s", display: "block",
+            transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+            ▼
+          </span>
+        </div>
+      </div>
+
+      {/* Expandable stock table */}
+      {expanded && entry.data.length > 0 && (
+        <div style={{ padding: "0 1rem 1rem" }}>
+          <div className="table-container" style={{ marginTop: "0.75rem" }}>
+            <table>
+              <thead>
+                <tr>
+                  {headers.map(h => <th key={h}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {entry.data.map((row: any, i: number) => (
+                  <tr key={i}>
+                    {cols.map(col => {
+                      const val = row[col];
+                      let display: React.ReactNode = val ?? "—";
+
+                      if (col === "stock")          display = <strong style={{ color: "#e6edf3" }}>{val}</strong>;
+                      else if (col === "signal")    display = <span style={{ color: "#a371f7", fontSize: "0.8rem" }}>{val}</span>;
+                      else if (col === "grade")     display = <span style={{ fontWeight: 800, color: val === "A+" ? "#e3b341" : val === "A" ? "#3fb950" : "#79c0ff" }}>{val}</span>;
+                      else if (col === "entry" || col === "sl" || col === "target" || col === "close")
+                                                    display = <span>₹{typeof val === "number" ? val.toFixed(2) : val}</span>;
+                      else if (col === "target_pct") display = <span style={{ color: "#3fb950", fontWeight: 700 }}>+{val}%</span>;
+                      else if (col === "day_chg_pct") display = <span style={{ color: "#3fb950", fontWeight: 700 }}>+{typeof val === "number" ? val.toFixed(2) : val}%</span>;
+                      else if (col === "rr")        display = <span style={{ fontWeight: 700, color: val >= 3 ? "#e3b341" : val >= 2 ? "#3fb950" : "#f0883e" }}>1:{typeof val === "number" ? val.toFixed(2) : val}</span>;
+                      else if (col === "vol_ratio")  display = <span style={{ fontWeight: 700, color: "#f0883e" }}>{typeof val === "number" ? val.toFixed(1) : val}x</span>;
+                      else if (col === "deliv_pct_today") display = <strong style={{ color: "#58a6ff" }}>{val}%</strong>;
+                      else if (col === "deliv_pct_prev")  display = <span style={{ color: "#8b949e" }}>{val}%</span>;
+                      else if (col === "market_cap_cr")   display = <span>₹{typeof val === "number" ? val.toLocaleString() : val}</span>;
+
+                      return <td key={col}>{display}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {expanded && entry.data.length === 0 && (
+        <div style={{ padding: "1rem", color: "#8b949e", textAlign: "center", fontSize: "0.88rem" }}>
+          No stock data saved for this scan.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"AI" | "DELIVERY" | "HISTORY">("AI");
 
