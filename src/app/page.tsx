@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Setup = {
@@ -44,6 +44,14 @@ type DeliveryResult = {
   total: number;
   data: DeliverySetup[];
   error?: string;
+};
+
+type HistoryEntry = {
+  id: number;
+  date: string;
+  type: "AI" | "DELIVERY";
+  total: number;
+  data: any[];
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -177,7 +185,70 @@ function TargetBadge({ pct }: { pct: number }) {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"AI" | "DELIVERY">("AI");
+  const [activeTab, setActiveTab] = useState<"AI" | "DELIVERY" | "HISTORY">("AI");
+
+  // History State
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  useEffect(() => {
+    // Load history on mount
+    const saved = localStorage.getItem("vibe_history");
+    if (saved) {
+      try { setHistory(JSON.parse(saved)); } catch (e) {}
+    }
+  }, []);
+
+  const saveToHistory = (type: "AI" | "DELIVERY", total: number, data: any[]) => {
+    const entry: HistoryEntry = {
+      id: Date.now(),
+      date: new Date().toLocaleString(),
+      type,
+      total,
+      data
+    };
+    const updated = [entry, ...history].slice(0, 30); // Keep last 30 scans
+    setHistory(updated);
+    localStorage.setItem("vibe_history", JSON.stringify(updated));
+  };
+
+  const downloadCSV = (entry: HistoryEntry) => {
+    if (!entry.data || entry.data.length === 0) return;
+    
+    // Extract headers dynamically from the first object
+    const headers = Object.keys(entry.data[0]);
+    
+    // Build CSV string
+    const csvRows = [];
+    csvRows.push(headers.join(","));
+    
+    for (const row of entry.data) {
+      const values = headers.map(header => {
+        const val = row[header];
+        // Escape quotes and wrap in quotes if there's a comma
+        const escaped = String(val).replace(/"/g, '""');
+        return `"${escaped}"`;
+      });
+      csvRows.push(values.join(","));
+    }
+    
+    const csvString = csvRows.join("\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Vibe_${entry.type}_Scan_${entry.id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const clearHistory = () => {
+    if (confirm("Are you sure you want to clear all history?")) {
+      setHistory([]);
+      localStorage.removeItem("vibe_history");
+    }
+  };
 
   // AI Scanner State
   const [aiLoading, setAiLoading] = useState(false);
@@ -201,8 +272,12 @@ export default function Home() {
       const url = isLocal ? "http://localhost:5000/api/scan" : "/api/scan";
       const res = await fetch(url);
       const json = await res.json();
-      if (json.status === "success") setAiResult(json);
-      else setAiError(json.error || "Scan failed.");
+      if (json.status === "success") {
+        setAiResult(json);
+        saveToHistory("AI", json.total, json.data);
+      } else {
+        setAiError(json.error || "Scan failed.");
+      }
     } catch {
       setAiError("Cannot connect to AI scanner engine.");
     }
@@ -218,8 +293,12 @@ export default function Home() {
       const url = isLocal ? "http://localhost:5000/api/delivery_scan" : "/api/delivery_scan";
       const res = await fetch(url);
       const json = await res.json();
-      if (json.status === "success") setDelResult(json);
-      else setDelError(json.error || "Delivery scan failed.");
+      if (json.status === "success") {
+        setDelResult(json);
+        saveToHistory("DELIVERY", json.total, json.data);
+      } else {
+        setDelError(json.error || "Delivery scan failed.");
+      }
     } catch {
       setDelError("Cannot connect to Delivery scanner engine.");
     }
@@ -251,28 +330,39 @@ export default function Home() {
       </div>
 
       {/* Navigation Tabs */}
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", borderBottom: "1px solid #30363d", paddingBottom: "0.5rem" }}>
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", borderBottom: "1px solid #30363d", paddingBottom: "0.5rem", flexWrap: "wrap" }}>
         <button 
           onClick={() => setActiveTab("AI")}
           style={{
-            background: "transparent", border: "none", cursor: "pointer", fontSize: "1.1rem", fontWeight: 700,
+            background: "transparent", border: "none", cursor: "pointer", fontSize: "1.05rem", fontWeight: 700,
             color: activeTab === "AI" ? "#58a6ff" : "#8b949e",
             borderBottom: activeTab === "AI" ? "3px solid #58a6ff" : "3px solid transparent",
             paddingBottom: "0.5rem", transition: "all 0.2s"
           }}
         >
-          🤖 AI Pre-Rally Scanner
+          🤖 AI Pre-Rally
         </button>
         <button 
           onClick={() => setActiveTab("DELIVERY")}
           style={{
-            background: "transparent", border: "none", cursor: "pointer", fontSize: "1.1rem", fontWeight: 700,
+            background: "transparent", border: "none", cursor: "pointer", fontSize: "1.05rem", fontWeight: 700,
             color: activeTab === "DELIVERY" ? "#3fb950" : "#8b949e",
             borderBottom: activeTab === "DELIVERY" ? "3px solid #3fb950" : "3px solid transparent",
             paddingBottom: "0.5rem", transition: "all 0.2s"
           }}
         >
-          📦 Delivery Volume Scanner
+          📦 Delivery Breakout
+        </button>
+        <button 
+          onClick={() => setActiveTab("HISTORY")}
+          style={{
+            background: "transparent", border: "none", cursor: "pointer", fontSize: "1.05rem", fontWeight: 700,
+            color: activeTab === "HISTORY" ? "#a371f7" : "#8b949e",
+            borderBottom: activeTab === "HISTORY" ? "3px solid #a371f7" : "3px solid transparent",
+            paddingBottom: "0.5rem", transition: "all 0.2s"
+          }}
+        >
+          🕒 History & Export
         </button>
       </div>
 
@@ -619,6 +709,72 @@ export default function Home() {
               </div>
             )}
           </>
+        )}
+
+        {/* ───────────────────────────────────────────────────────────────────────────── */}
+        {/* HISTORY TAB */}
+        {/* ───────────────────────────────────────────────────────────────────────────── */}
+        {activeTab === "HISTORY" && (
+          <div className="card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <div className="card-title" style={{ margin: 0 }}>🕒 Scan History (Saved Locally)</div>
+              {history.length > 0 && (
+                <button onClick={clearHistory} style={{
+                  background: "rgba(248,81,73,0.1)", color: "#f85149", border: "1px solid rgba(248,81,73,0.3)",
+                  padding: "0.3rem 0.8rem", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem", fontWeight: 600
+                }}>
+                  Clear History
+                </button>
+              )}
+            </div>
+
+            {history.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "2rem", color: "#8b949e" }}>
+                No history found. Run a scan to save it here!
+              </div>
+            ) : (
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date / Time</th>
+                      <th>Scanner Type</th>
+                      <th>Stocks Found</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map(entry => (
+                      <tr key={entry.id}>
+                        <td style={{ color: "#c9d1d9", fontWeight: 600 }}>{entry.date}</td>
+                        <td>
+                          <span style={{
+                            background: entry.type === "AI" ? "rgba(88,166,255,0.15)" : "rgba(63,185,80,0.15)",
+                            color: entry.type === "AI" ? "#58a6ff" : "#3fb950",
+                            padding: "0.2rem 0.5rem", borderRadius: 4, fontSize: "0.8rem", fontWeight: 700
+                          }}>
+                            {entry.type === "AI" ? "🤖 AI Pre-Rally" : "📦 Delivery Vol"}
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 700 }}>{entry.total}</td>
+                        <td>
+                          <button onClick={() => downloadCSV(entry)} style={{
+                            background: "#21262d", color: "#c9d1d9", border: "1px solid #30363d",
+                            padding: "0.3rem 0.8rem", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem", fontWeight: 600
+                          }}>
+                            ⬇️ Download CSV
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p style={{ color: "#8b949e", fontSize: "0.8rem", marginTop: "1rem", fontStyle: "italic" }}>
+              * History is saved in your browser. If you clear browser data, history will be lost. Download CSV to save permanently.
+            </p>
+          </div>
         )}
 
       </div>
