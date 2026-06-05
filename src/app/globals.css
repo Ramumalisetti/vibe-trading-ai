@@ -1,15 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 :root {
-  --background: #0d1117;
+  --background: #0a0d12;
+  --bg2: #0d1117;
   --foreground: #c9d1d9;
   --primary: #58a6ff;
   --primary-hover: #3182ce;
   --success: #2ea043;
   --danger: #f85149;
-  --border: #30363d;
+  --warning: #f0883e;
+  --border: #21262d;
+  --border2: #30363d;
   --card-bg: #161b22;
+  --text-muted: #8b949e;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
@@ -18,145 +24,204 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 1.5rem;
 }
 
+/* ── Header ───────────────────────────────────────────────────── */
 .header {
   text-align: center;
-  margin-bottom: 3rem;
-  animation: fadeIn 1s ease-in;
+  margin-bottom: 2.5rem;
+  animation: fadeInDown 0.7s ease both;
+  padding: 2rem 0;
+  position: relative;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% -10%, rgba(88,166,255,0.12) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .header h1 {
-  font-size: 2.5rem;
-  color: #fff;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(90deg, var(--primary), #a371f7);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #58a6ff 0%, #a371f7 50%, #2ea043 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.6rem;
 }
 
 .header p {
-  color: #8b949e;
-  font-size: 1.1rem;
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
+/* ── Layout ────────────────────────────────────────────────────── */
 .dashboard {
   display: grid;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
+/* ── Cards ─────────────────────────────────────────────────────── */
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  transition: box-shadow 0.2s, transform 0.2s;
+  animation: fadeInUp 0.5s ease both;
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  transform: translateY(-1px);
 }
 
 .card-title {
-  font-size: 1.25rem;
-  color: #fff;
-  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e6edf3;
+  margin-bottom: 1.25rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
 }
 
+/* ── Button ─────────────────────────────────────────────────────── */
 .btn {
-  background-color: var(--primary);
+  background: linear-gradient(135deg, #1f6feb, #388bfd);
   color: #fff;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
+  padding: 0.8rem 2rem;
+  border-radius: 8px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 20px rgba(88,166,255,0.25);
 }
 
 .btn:hover:not(:disabled) {
-  background-color: var(--primary-hover);
+  background: linear-gradient(135deg, #388bfd, #58a6ff);
+  box-shadow: 0 0 30px rgba(88,166,255,0.4);
+  transform: translateY(-1px);
 }
 
 .btn:disabled {
-  opacity: 0.7;
+  opacity: 0.65;
   cursor: not-allowed;
+  transform: none;
 }
 
+/* ── Table ──────────────────────────────────────────────────────── */
 .table-container {
   overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-}
-
-th, td {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
 }
 
 th {
-  color: #8b949e;
+  color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
+  padding: 0.9rem 1rem;
+  background: #0d1117;
+  border-bottom: 1px solid var(--border2);
+  white-space: nowrap;
+}
+
+td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
 
 tr:last-child td {
   border-bottom: none;
 }
 
+tr:hover td {
+  background: rgba(88,166,255,0.03);
+}
+
+/* ── Badges ─────────────────────────────────────────────────────── */
 .badge-success {
-  background-color: rgba(46, 160, 67, 0.1);
-  color: var(--success);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  background: rgba(46,160,67,0.15);
+  color: #3fb950;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .badge-danger {
-  background-color: rgba(248, 81, 73, 0.1);
-  color: var(--danger);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  background: rgba(248,81,73,0.12);
+  color: #f85149;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
+/* ── Spinner ─────────────────────────────────────────────────────── */
 .spinner {
-  animation: spin 1s linear infinite;
+  animation: spin 0.9s linear infinite;
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
 }
 
+/* ── Animations ─────────────────────────────────────────────────── */
 @keyframes spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .container { padding: 1rem; }
+  .card { padding: 1rem; }
+  th, td { padding: 0.6rem 0.7rem; }
 }
