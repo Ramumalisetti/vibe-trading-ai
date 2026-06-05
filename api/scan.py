@@ -234,19 +234,38 @@ def analyze_stock(ticker):
         # 🏆 SIGNAL 1 — POCKET PIVOT  (catches JKIL 6000→9000 type)
         # Volume today > highest down-day vol of last 10 days while price up
         # = Pure institutional accumulation fingerprint
+        #
+        # ANTI-LATE FILTERS (avoids buying after the move already happened):
+        #   1. Stock must NOT be >12% above its 20-day low  (not extended)
+        #   2. Stock must be in a base: 20-day high/low range < 30%  (consolidating)
+        #   3. RSI must be < 70  (not overbought / already ran)
+        #   4. Price within 8% of 50 EMA  (near support, not extended)
         # ════════════════════════════════════════════════════════════════════
         if len(vol) >= 11:
-            last10  = df.iloc[-11:-1]
-            down_days = last10[last10['Close'] < last10['Close'].shift()]
-            if not down_days.empty:
+            last10     = df.iloc[-11:-1]
+            down_days  = last10[last10['Close'] < last10['Close'].shift()]
+            low20_val  = float(low.rolling(20).min().iloc[-1])
+            high20_val = float(high.rolling(20).max().iloc[-1])
+
+            # Anti-late checks
+            pct_above_low20 = (c - low20_val) / low20_val * 100   # how far from base low
+            base_range_pct  = (high20_val - low20_val) / low20_val * 100  # consolidation width
+            pct_from_e50    = abs(c - e50) / e50 * 100
+
+            not_extended    = pct_above_low20 < 12          # not already up >12% from base
+            in_base         = base_range_pct < 30           # stock consolidating, not trending wildly
+            not_overbought  = r14 < 70                      # RSI not stretched
+            near_support    = pct_from_e50 < 8              # within 8% of 50 EMA
+
+            if not down_days.empty and not_extended and in_base and not_overbought:
                 max_down_vol = float(down_days['Volume'].max())
                 is_up_day    = c > c_1
                 if is_up_day and v1 > max_down_vol and c > e50:
-                    # Strong confirmation: above 200 EMA + ADX trending
-                    grade = "A" if (c > e200 and adx_ > 20) else "B"
-                    sl_pp = round(min(sl_atr, float(low.iloc[-3:].min()) * 0.995), 2)
+                    grade = "A" if (c > e200 and adx_ > 20 and near_support) else "B"
+                    sl_pp = round(min(sl_atr, low20_val * 0.99), 2)
                     s = make("Pocket Pivot", grade, c, sl_pp, 20.0,
-                             f"Today vol {vrat}x avg > max down-day vol. Institutional accumulation. ADX {round(adx_,1)}.")
+                             f"Vol {vrat}x avg > max down-day vol. In base ({round(base_range_pct,1)}% range). "
+                             f"{round(pct_above_low20,1)}% above base low. RSI {round(r14,1)}. NOT extended.")
                     if s: setups.append(s)
 
         # ════════════════════════════════════════════════════════════════════
