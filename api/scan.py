@@ -315,7 +315,24 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
 
-        all_setups = run_scan(TICKERS)
+        # Vercel Serverless limits us to ~30 seconds of execution time.
+        # We curate 60 high-quality mid/small cap multibagger candidates for the live web version.
+        VERCEL_TICKERS = [
+            "TITAN.NS","TRENT.NS","BAJFINANCE.NS","DIXON.NS","POLYCAB.NS","KAYNES.NS",
+            "KPITTECH.NS","TATAELXSI.NS","PERSISTENT.NS","COFORGE.NS","MPHASIS.NS",
+            "LTTS.NS","ASTRAL.NS","SUPREMEIND.NS","APLAPOLLO.NS","SRF.NS",
+            "PIDILITIND.NS","HAVELLS.NS","VOLTAS.NS","SIEMENS.NS","ABB.NS",
+            "CUMMINSIND.NS","SCHAEFFLER.NS","TIINDIA.NS","ENDURANCE.NS","BHARATFORG.NS",
+            "DEEPAKNITR.NS","NAVINFLUOR.NS","FINEORG.NS","ATUL.NS","AARTIIND.NS",
+            "GNFC.NS","PCBL.NS","GHCL.NS","TATACHEM.NS","CHOLAFIN.NS",
+            "MUTHOOTFIN.NS","MANAPPURAM.NS","SHRIRAMFIN.NS","ABCAPITAL.NS",
+            "IRFC.NS","PFC.NS","RECLTD.NS","IREDA.NS","HUDCO.NS","SJVN.NS",
+            "CDSL.NS","BSE.NS","CAMS.NS","KFINTECH.NS","ANGELONE.NS","MCX.NS",
+            "RATEGAIN.NS","TANLA.NS","MASTEK.NS","ZENSAR.NS","BIRLASOFT.NS",
+            "SONATSOFTW.NS","ECLERX.NS","ROUTE.NS","CYIENT.NS","NETWEB.NS"
+        ][:60]
+        
+        all_setups = run_scan(VERCEL_TICKERS)
 
         grade_order = {"A+": 0, "A": 1, "B": 2, "C": 3}
         all_setups.sort(key=lambda x: (
