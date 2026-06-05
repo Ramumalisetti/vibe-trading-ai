@@ -1,12 +1,12 @@
 """
-Local API Server — Full Nifty 500 Universe
+Local API Server — Full Nifty 500 Universe (Bulk Download)
 Run this before using the dashboard locally.
 Dashboard: http://localhost:3000
 """
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from api.scan import analyze_stock, TICKERS, SIGNAL_ORDER, WIN_RATES
+from api.scan import run_scan, TICKERS, SIGNAL_ORDER, WIN_RATES
 from api.delivery_scan import run_delivery_scan
-import concurrent.futures, json
+import json
 
 FULL_TICKERS = list(dict.fromkeys(TICKERS))
 
@@ -15,7 +15,7 @@ class RouterHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args): pass
 
     def do_GET(self):
-        if self.path == '/api/delivery_scan' or self.path == '/api/delivery_scan?':
+        if self.path.startswith('/api/delivery_scan'):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -30,25 +30,20 @@ class RouterHandler(BaseHTTPRequestHandler):
                     "data":   data,
                 }).encode())
             return
-            
-        # Default to /api/scan
+
+        # /api/scan — bulk download all 500 stocks
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
 
-        all_setups = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
-            futures = {ex.submit(analyze_stock, t): t for t in FULL_TICKERS}
-            for fut in concurrent.futures.as_completed(futures):
-                res = fut.result()
-                if res:
-                    all_setups.extend(res)
+        print(f"  Bulk-downloading {len(FULL_TICKERS)} stocks via yfinance...")
+        all_setups = run_scan(FULL_TICKERS)
 
         grade_order = {"A+": 0, "A": 1, "B": 2, "C": 3}
         all_setups.sort(key=lambda x: (
             SIGNAL_ORDER.index(x['signal']) if x['signal'] in SIGNAL_ORDER else 99,
-            grade_order.get(x.get('grade', 'C'), 2),
+            grade_order.get(x.get('grade', 'C'), 3),
             -x['rr']
         ))
 
@@ -59,7 +54,7 @@ class RouterHandler(BaseHTTPRequestHandler):
             "data":      all_setups,
         }).encode()
         self.wfile.write(payload)
-        print(f"✅ Scan complete — {len(all_setups)} setups across {len(FULL_TICKERS)} stocks.")
+        print(f"  Scan complete: {len(all_setups)} setups found across {len(FULL_TICKERS)} stocks.")
 
 
 if __name__ == "__main__":
@@ -69,6 +64,7 @@ if __name__ == "__main__":
     print("  Vibe Trading AI - Multibagger Scanner")
     print("==============================================")
     print(f"  Universe  : {total} Nifty 500 stocks")
+    print(f"  Method    : Bulk download (single API call)")
     print(f"  Endpoints : /api/scan, /api/delivery_scan")
     print(f"  Dashboard : http://localhost:3000")
     print("==============================================")

@@ -3,7 +3,6 @@ import json, os
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import concurrent.futures
 
 # ── Nifty 500 Universe ────────────────────────────────────────────────────────
 TICKERS = [
@@ -45,45 +44,58 @@ TICKERS = [
     # Capital Goods / Infra
     "CESC.NS","TORNTPOWER.NS","SUZLON.NS","THERMAX.NS",
     "KPIL.NS","NCC.NS","NBCC.NS","RVNL.NS","IRCON.NS","RITES.NS",
-    "RAILVIKAS.NS","HCC.NS","ENGINERSIN.NS","INOXWIND.NS",
-    "JKIL.NS","KEC.NS","GRINFRA.NS","PNCINFRATECH.NS",
+    "KEC.NS","GRINFRA.NS","JKIL.NS","INOXWIND.NS","TDPOWERSYS.NS",
     # Consumer / FMCG
     "RADICO.NS","VBLLTD.NS","JYOTHYLAB.NS","EMAMILTD.NS",
     "BERGEPAINT.NS","KANSAINER.NS","SUPREMEIND.NS","APLAPOLLO.NS",
-    "BATAINDIA.NS","RELAXO.NS","PGHH.NS",
+    "BATAINDIA.NS","RELAXO.NS",
     # Metals
     "HINDZINC.NS","NATIONALUM.NS","MOIL.NS","AIAENG.NS","RATNAMANI.NS",
     "WELSPUNIND.NS","JSWENERGY.NS",
     # Real Estate / Cement
     "GODREJPROP.NS","PRESTIGE.NS","PHOENIX.NS","BRIGADE.NS","SOBHA.NS",
-    "OBEROIRLTY.NS","RAMCOCEM.NS","DALMIA.NS","JKCEMENT.NS","BIRLACORPN.NS",
+    "OBEROIRLTY.NS","RAMCOCEM.NS","DALMIA.NS","JKCEMENT.NS",
     # Chemicals
     "DEEPAKNITR.NS","GNFC.NS","NAVINFLUOR.NS","PCBL.NS","TATACHEM.NS",
     "FINEORG.NS","GHCL.NS","ATUL.NS",
     # Finance / Banking
-    "ABCAPITAL.NS","PNBHOUSING.NS","LICHSGFIN.NS","MANAPPURAM.NS",
-    "UJJIVANSFB.NS","EQUITASBNK.NS","KARURVYSYA.NS","DCBBANK.NS",
-    "INDIAMART.NS","ANGELONE.NS","IIFL.NS","MOFSL.NS","IREDA.NS",
-    "CDSL.NS","BSE.NS","MCX.NS","CAMS.NS","KFINTECH.NS",
-    # Telecom / Media / Logistics
-    "INDUSTOWER.NS","SAREGAMA.NS","SUNTV.NS","PVRINOX.NS",
-    "BLUEDART.NS","CONCOR.NS","TCI.NS",
+    "ABCAPITAL.NS","LICHSGFIN.NS","MANAPPURAM.NS",
+    "CDSL.NS","BSE.NS","MCX.NS","CAMS.NS","KFINTECH.NS","ANGELONE.NS",
+    "MOFSL.NS","IREDA.NS","MOTILALOFS.NS","CHOLAHLDNG.NS",
+    # Logistics / Telecom
+    "INDUSTOWER.NS","CONCOR.NS","BLUEDART.NS",
     # Retail / Hospitality
     "NYKAA.NS","JUBLFOOD.NS","WESTLIFE.NS","DEVYANI.NS","VMART.NS",
-    # Adani / PSU
-    "ADANIGREEN.NS","ADANIPOWER.NS","AWL.NS",
-    "IOC.NS","HINDPETRO.NS","OIL.NS","MGL.NS","IGL.NS",
+    "INDHOTEL.NS","BIKAJI.NS",
+    # PSU / Energy
     "SJVN.NS","NHPC.NS","BEML.NS","HUDCO.NS","REC.NS",
-    # Small / Mid Cap momentum plays
-    "EMVEE.NS","WAAREEENER.NS","PREMIER.NS","KAYNES.NS","AVALON.NS",
-    "JSWHL.NS","JYOTISTRUC.NS","TDPOWERSYS.NS","NETWEB.NS","BIKAJI.NS",
-    "POLICYBZR.NS","JSWINFRA.NS","MOTILALOFS.NS","CHOLAHLDNG.NS",
-    "RBLBANK.NS","CSBBANK.NS","WOCKPHARMA.NS","MAPMYINDIA.NS",
+    "IOC.NS","HINDPETRO.NS","MGL.NS","IGL.NS","ATGL.NS",
+    # Small/Mid cap momentum
+    "KAYNES.NS","NETWEB.NS","MAPMYINDIA.NS","POLICYBZR.NS",
+    "WAAREEENER.NS","RBLBANK.NS","WOCKPHARMA.NS",
 ]
 TICKERS = list(dict.fromkeys(TICKERS))
 
-# ── Technical Indicators ──────────────────────────────────────────────────────
+# ── WIN RATES ─────────────────────────────────────────────────────────────────
+WIN_RATES = {
+    "Holy Grail Multibagger": 82,
+    "Pocket Pivot Base"     : 71,
+    "BB Squeeze + Dry Up"   : 68,
+    "NR7 @ 52W High"        : 64,
+    "Volume Accumulation"   : 58,
+}
 
+MIN_RR = 1.2
+
+SIGNAL_ORDER = [
+    "Holy Grail Multibagger",
+    "Pocket Pivot Base",
+    "BB Squeeze + Dry Up",
+    "NR7 @ 52W High",
+    "Volume Accumulation",
+]
+
+# ── Technical Indicators ──────────────────────────────────────────────────────
 def calc_atr(df, p=14):
     hl = df['High'] - df['Low']
     hc = (df['High'] - df['Close'].shift()).abs()
@@ -102,44 +114,19 @@ def calc_ema(close, span):
 def calc_bb(close, p=20, k=2):
     mid   = close.rolling(p).mean()
     sigma = close.rolling(p).std()
-    return mid + k*sigma, mid, mid - k*sigma, (4*sigma)/mid   # upper,mid,lower,width%
+    return mid + k*sigma, mid, mid - k*sigma, (4*sigma)/mid.replace(0, np.nan)
 
-# ── WIN RATES (NSE backtested, 2018-2024) ─────────────────────────────────────
-# Trimmed down to only Multibagger Pre-Breakout signals
-WIN_RATES = {
-    "Holy Grail Multibagger": 82,   # Ultra-rare perfect alignment
-    "Pocket Pivot Base"     : 71,
-    "BB Squeeze + Dry Up"   : 68,
-    "NR7 @ 52W High"        : 64,
-    "Volume Accumulation"   : 58,
-}
-
-MIN_RR = 1.2
-
-SIGNAL_ORDER = [
-    "Holy Grail Multibagger",
-    "Pocket Pivot Base",
-    "BB Squeeze + Dry Up",
-    "NR7 @ 52W High",
-    "Volume Accumulation",
-]
-
-# ── Core Analysis ──────────────────────────────────────────────────────────────
-
-def analyze_stock(ticker):
+# ── Core Analysis (operates on pre-downloaded per-stock DataFrame) ─────────────
+def analyze_df(name, df):
     try:
-        df = yf.download(ticker, period="1y", interval="1d", progress=False, auto_adjust=True)
         if df.empty or len(df) < 100:
             return []
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.droplevel(1)
 
         close = df['Close']
         high  = df['High']
         low   = df['Low']
         vol   = df['Volume']
 
-        # ── Indicators ────────────────────────────────────────────────────────
         atr14        = calc_atr(df, 14)
         atr40        = calc_atr(df, 40)
         rsi14        = calc_rsi(close, 14)
@@ -149,7 +136,6 @@ def analyze_stock(ticker):
         vol50        = vol.rolling(50).mean()
         bb_up, bb_mid, bb_lo, bb_width = calc_bb(close, 20, 2)
 
-        # ── Scalars ───────────────────────────────────────────────────────────
         c    = float(close.iloc[-1])
         c_1  = float(close.iloc[-2])
         atr_ = float(atr14.iloc[-1])
@@ -158,57 +144,47 @@ def analyze_stock(ticker):
         v1   = float(vol.iloc[-1])
         v20_ = float(vol20.iloc[-1])
         r14  = float(rsi14.iloc[-1])
-        bbu  = float(bb_up.iloc[-1]);  bbm  = float(bb_mid.iloc[-1])
+        bbu  = float(bb_up.iloc[-1]);  bbm = float(bb_mid.iloc[-1])
         bbw  = float(bb_width.iloc[-1])
         bbu_1= float(bb_up.iloc[-2])
-        
         h52  = float(high.max())
         l52  = float(low.min())
 
-        if any(np.isnan(x) for x in [atr_, e200, e50, v20_]) or atr_ == 0 or v20_ == 0:
+        if any(np.isnan(x) for x in [atr_, e200, e50, v20_, bbw]) or atr_ == 0 or v20_ == 0:
             return []
 
-        name      = ticker.replace('.NS', '')
-        vrat      = round(v1 / v20_, 1) if v20_ > 0 else 0
-        sl_atr    = round(c - 1.5 * atr_, 2)
+        vrat = round(v1 / v20_, 1) if v20_ > 0 else 0
+        sl_atr = round(c - 1.5 * atr_, 2)
 
         def make(signal, grade, entry, sl, target_pct, reason):
-            """Build a trade setup with variable target."""
             if sl >= entry: return None
-            risk  = (entry - sl) / entry * 100
+            risk = (entry - sl) / entry * 100
             if risk <= 0: return None
             rr = round(target_pct / risk, 2)
             if rr < MIN_RR: return None
             conf = {"A+": 95, "A": 85, "B": 70, "C": 55}.get(grade, 60)
-            wr   = WIN_RATES.get(signal, 50)
             return dict(
-                signal    = signal,
-                grade     = grade,
-                confidence= conf,
-                win_rate  = wr,
-                stock     = name,
-                entry     = round(entry, 2),
-                sl        = round(sl, 2),
-                target    = round(entry * (1 + target_pct/100), 2),
-                target_pct= target_pct,
-                risk_pct  = round(risk, 2),
-                rr        = rr,
-                reason    = reason,
+                signal=signal, grade=grade, confidence=conf,
+                win_rate=WIN_RATES.get(signal, 50), stock=name,
+                entry=round(entry, 2), sl=round(sl, 2),
+                target=round(entry * (1 + target_pct/100), 2),
+                target_pct=target_pct, risk_pct=round(risk, 2), rr=rr,
+                reason=reason,
             )
 
         setups = []
 
-        # ── Pre-calculate global multbagger ingredients ───────────────────────
-        dist_to_52h = (h52 - c) / c * 100
+        # ── Pre-calculate multibagger ingredients ──────────────────────────────
+        dist_to_52h  = (h52 - c) / c * 100
         near_52w_high = dist_to_52h <= 5.0
 
         bbw_series = bb_width.dropna()
         bbw_pct = 1.0
         if len(bbw_series) >= 50:
-            bbw_pct = float((bbw_series < bbw).sum() / len(bbw_series))  # 0-1, LOW = squeeze
+            bbw_pct = float((bbw_series < bbw).sum() / len(bbw_series))
         is_squeezed = bbw_pct < 0.20
 
-        # Pocket Pivot Signature
+        # Pocket Pivot signature
         pp_signature = False
         if len(vol) >= 11:
             last10 = df.iloc[-11:-1]
@@ -218,95 +194,71 @@ def analyze_stock(ticker):
                 if c > c_1 and v1 > max_down_vol:
                     pp_signature = True
 
-        # Base / Consolidation tightness
-        a40 = float(atr40.iloc[-1])
-        base_tightness = (a40 / c) * 100  # ATR as % of price
-        is_tight_base = base_tightness < 3.5
+        # Base tightness
+        a40 = float(atr40.iloc[-1]) if not np.isnan(float(atr40.iloc[-1])) else atr_
+        base_tightness = (a40 / c) * 100
+        is_tight_base  = base_tightness < 3.5
 
-        # Trend filter (Absolute RS proxy)
         uptrend = c > e50 > e200
 
-        # ════════════════════════════════════════════════════════════════════
-        # 👑 SIGNAL 0 — HOLY GRAIL MULTIBAGGER
-        # All 5 multibagger ingredients align perfectly.
-        # ════════════════════════════════════════════════════════════════════
+        # ── SIGNAL 0: HOLY GRAIL ──────────────────────────────────────────────
         if near_52w_high and is_squeezed and pp_signature and is_tight_base and uptrend:
             sl_hg = round(min(sl_atr, float(low.iloc[-5:].min()) * 0.99), 2)
             s = make("Holy Grail Multibagger", "A+", c, sl_hg, 35.0,
-                     f"PERFECT ALIGNMENT: 52W High ({round(dist_to_52h,1)}% away), Deep Squeeze (bottom {round(bbw_pct*100)}%), Pocket Pivot volume, and Tight 8W Base.")
-            if s: setups.append(s)
-            # If Holy Grail hits, skip other signals for this stock
-            return [s]
+                     f"PERFECT: 52W High {round(dist_to_52h,1)}% away, Squeeze bottom {round(bbw_pct*100)}%, Pocket Pivot vol, Tight {round(base_tightness,1)}% ATR base.")
+            if s: return [s]
 
-        # ════════════════════════════════════════════════════════════════════
-        # 🏆 SIGNAL 1 — POCKET PIVOT BASE
-        # Pocket Pivot volume signature inside a long consolidation base.
-        # ════════════════════════════════════════════════════════════════════
+        # ── SIGNAL 1: POCKET PIVOT BASE ───────────────────────────────────────
         if pp_signature and uptrend:
             base_range_pct = (h52 - l52) / l52 * 100
-            # Stock hasn't run wildly in 52W (consolidating) AND not overbought
             if base_range_pct < 65 and r14 < 65:
-                grade = "A" if (near_52w_high) else "B"
-                sl_pp = round(min(sl_atr, e50 * 0.99), 2)
+                grade  = "A" if near_52w_high else "B"
+                sl_pp  = round(min(sl_atr, e50 * 0.99), 2)
                 s = make("Pocket Pivot Base", grade, c, sl_pp, 25.0,
-                         f"Vol {vrat}x avg > max down-day vol. In {round(base_range_pct,1)}% 1Y base. RSI {round(r14,1)}. Accumulation before markup.")
+                         f"Vol {vrat}x > max down-day vol. {round(base_range_pct,1)}% 1Y base. RSI {round(r14,1)}. Smart money accumulating.")
                 if s: setups.append(s)
 
-        # ════════════════════════════════════════════════════════════════════
-        # 🎯 SIGNAL 2 — BB SQUEEZE + DRY UP
-        # Coiling with volume drying up before the explosion.
-        # ════════════════════════════════════════════════════════════════════
+        # ── SIGNAL 2: BB SQUEEZE + DRY UP ────────────────────────────────────
         if is_squeezed and c > bbu and c_1 <= bbu_1 and uptrend:
             v10_prev = float(vol.rolling(10).mean().iloc[-2])
-            v50_prev = float(vol50.iloc[-2])
-            vol_dried_up = v10_prev < v50_prev  # Volume contracted before the break
-            
+            v50_prev = float(vol50.iloc[-2]) if len(vol50.dropna()) >= 2 else v20_
+            vol_dried_up = v10_prev < v50_prev
             if vol_dried_up:
-                grade = "A" if (v1 > 1.5 * v20_) else "B"
-                sl_sq = round(max(bbm * 0.99, sl_atr), 2)
+                grade  = "A" if (v1 > 1.5 * v20_) else "B"
+                sl_sq  = round(max(bbm * 0.99, sl_atr), 2)
                 s = make("BB Squeeze + Dry Up", grade, c, sl_sq, 20.0,
                          f"Broke squeeze (bottom {round(bbw_pct*100)}%). Pre-breakout vol dried up (10D < 50D avg). Coil released!")
                 if s: setups.append(s)
 
-        # ════════════════════════════════════════════════════════════════════
-        # ⚡ SIGNAL 3 — NR7 @ 52W HIGH
-        # Narrowest range in 7 days right under a major resistance.
-        # ════════════════════════════════════════════════════════════════════
+        # ── SIGNAL 3: NR7 @ 52W HIGH ─────────────────────────────────────────
         if len(high) >= 8:
-            ranges    = (high - low)
-            rng_today = float(ranges.iloc[-1])
-            rng_prev7 = float(ranges.iloc[-8:-1].min())
-            rng_avg   = float(ranges.rolling(20).mean().iloc[-1])
-            
+            ranges     = high - low
+            rng_today  = float(ranges.iloc[-1])
+            rng_prev7  = float(ranges.iloc[-8:-1].min())
+            rng_avg    = float(ranges.rolling(20).mean().iloc[-1])
             is_nr7 = rng_today <= rng_prev7 and rng_today < 0.5 * rng_avg
-            
             if is_nr7 and near_52w_high and uptrend:
                 entry_nr7 = round(float(high.iloc[-1]) * 1.002, 2)
                 sl_nr7    = round(float(low.iloc[-1]) * 0.995, 2)
-                grade     = "A" if (v1 < v20_) else "B" # Want low volume on NR7 day
+                grade     = "A" if (v1 < v20_) else "B"
                 s = make("NR7 @ 52W High", grade, entry_nr7, sl_nr7, 15.0,
-                         f"NR7 tight range right under 52W high ({round(dist_to_52h,1)}% away). Spring loaded for major breakout.")
+                         f"NR7 tight range {round(dist_to_52h,1)}% from 52W high. Spring loaded for major breakout.")
                 if s: setups.append(s)
 
-        # ════════════════════════════════════════════════════════════════════
-        # 📦 SIGNAL 4 — VOLUME ACCUMULATION (Flat Price)
-        # 3-day volume surge with extremely tight price action.
-        # ════════════════════════════════════════════════════════════════════
+        # ── SIGNAL 4: VOLUME ACCUMULATION (flat price) ────────────────────────
         if len(vol) >= 6:
-            vol3     = float(vol.iloc[-3:].mean())
-            v20_prev = float(vol20.iloc[-4]) if len(vol20) >= 4 else v20_
-            pr_high5 = float(high.iloc[-5:].max())
-            pr_low5  = float(low.iloc[-5:].min())
-            pr_range = (pr_high5 - pr_low5) / c
-            
-            # Vol surge but price flat (<3.5% range over 5 days)
+            vol3      = float(vol.iloc[-3:].mean())
+            v20_prev  = float(vol20.iloc[-4]) if len(vol20.dropna()) >= 4 else v20_
+            pr_high5  = float(high.iloc[-5:].max())
+            pr_low5   = float(low.iloc[-5:].min())
+            pr_range  = (pr_high5 - pr_low5) / c
             if vol3 > 1.8 * v20_prev and pr_range < 0.035 and uptrend:
                 grade = "A" if (c > e50 and r14 < 60) else "B"
                 s = make("Volume Accumulation", grade, c, sl_atr, 15.0,
-                         f"3-day vol {round(vol3/v20_prev,1)}x norm, but price flat ({round(pr_range*100,1)}% 5D range). Heavy quiet accumulation.")
+                         f"3D vol {round(vol3/v20_prev,1)}x norm but price flat ({round(pr_range*100,1)}% 5D range). Heavy quiet accumulation.")
                 if s: setups.append(s)
 
-        # Keep best R:R per signal per stock
+        # Keep best R:R per signal
         seen = {}
         for s in setups:
             k = s['signal']
@@ -318,8 +270,40 @@ def analyze_stock(ticker):
         return []
 
 
-# ── Vercel: top 60 stocks; locally: full list ──────────────────────────────────
-VERCEL_TICKERS = TICKERS[:60]
+def run_scan(tickers):
+    """Bulk-download all tickers in one shot, then analyse each."""
+    all_setups = []
+    try:
+        raw = yf.download(
+            tickers,
+            period="1y",
+            interval="1d",
+            group_by="ticker",
+            auto_adjust=True,
+            progress=False,
+            threads=True,
+        )
+    except Exception:
+        return all_setups
+
+    # If only 1 ticker, yfinance returns a flat DataFrame (no MultiIndex)
+    if isinstance(raw.columns, pd.MultiIndex):
+        for ticker in tickers:
+            name = ticker.replace('.NS', '')
+            try:
+                df = raw[ticker].dropna(how='all')
+                setups = analyze_df(name, df)
+                all_setups.extend(setups)
+            except Exception:
+                continue
+    else:
+        # Single ticker fallback
+        if tickers:
+            name = tickers[0].replace('.NS', '')
+            setups = analyze_df(name, raw.dropna(how='all'))
+            all_setups.extend(setups)
+
+    return all_setups
 
 
 class handler(BaseHTTPRequestHandler):
@@ -331,16 +315,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
 
-        is_vercel = os.environ.get('VERCEL', '') == '1'
-        scan_list = VERCEL_TICKERS if is_vercel else TICKERS
-
-        all_setups = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
-            futures = {ex.submit(analyze_stock, t): t for t in scan_list}
-            for fut in concurrent.futures.as_completed(futures):
-                res = fut.result()
-                if res:
-                    all_setups.extend(res)
+        all_setups = run_scan(TICKERS)
 
         grade_order = {"A+": 0, "A": 1, "B": 2, "C": 3}
         all_setups.sort(key=lambda x: (
@@ -350,8 +325,8 @@ class handler(BaseHTTPRequestHandler):
         ))
 
         self.wfile.write(json.dumps({
-            "status":       "success",
-            "total":        len(all_setups),
-            "win_rates":    WIN_RATES,
-            "data":         all_setups,
+            "status":    "success",
+            "total":     len(all_setups),
+            "win_rates": WIN_RATES,
+            "data":      all_setups,
         }).encode())
