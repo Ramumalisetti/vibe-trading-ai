@@ -1,13 +1,12 @@
 """
 Local API Server — Full Nifty 500 Universe
-Run this on your computer before using the scanner.
+Run this before using the dashboard locally.
 Dashboard: http://localhost:3000
 """
 from http.server import HTTPServer
-from api.scan import handler, analyze_stock, TICKERS, SIGNAL_ORDER
+from api.scan import handler, analyze_stock, TICKERS, SIGNAL_ORDER, WIN_RATES
 import concurrent.futures, json
 
-# Full list = all tickers from scan.py (already comprehensive Nifty 500)
 FULL_TICKERS = list(dict.fromkeys(TICKERS))
 
 
@@ -34,28 +33,27 @@ class FullHandler(handler):
         ))
 
         payload = json.dumps({
-            "status": "success",
-            "total":  len(all_setups),
-            "target": "5%",
-            "data":   all_setups,
+            "status":    "success",
+            "total":     len(all_setups),
+            "win_rates": WIN_RATES,
+            "data":      all_setups,
         }).encode()
         self.wfile.write(payload)
-        print(f"✅ Scan complete — {len(all_setups)} setups found across {len(FULL_TICKERS)} stocks.")
+        print(f"✅ Scan complete — {len(all_setups)} setups across {len(FULL_TICKERS)} stocks.")
 
 
 if __name__ == "__main__":
     total = len(FULL_TICKERS)
     print("")
-    print("══════════════════════════════════════════")
-    print("   Vibe Trading AI — Nifty 500 Scanner")
-    print("══════════════════════════════════════════")
-    print(f"  Universe : {total} unique NSE stocks")
-    print(f"  Target   : 5% fixed on every signal")
-    print(f"  Stop Loss: 1.5× ATR (dynamic)")
-    print(f"  Signals  : 7 strategies (Grade A/B/C)")
-    print(f"  Min R:R  : 1.2")
-    print(f"  Dashboard: http://localhost:3000")
-    print("══════════════════════════════════════════")
+    print("══════════════════════════════════════════════")
+    print("    Vibe Trading AI — Pre-Rally AI Scanner")
+    print("══════════════════════════════════════════════")
+    print(f"  Universe  : {total} Nifty 500 stocks")
+    print(f"  Signals   : 10 (inc. Pocket Pivot, BB Squeeze, NR7)")
+    print(f"  Stop Loss : 1.5× ATR (dynamic)")
+    print(f"  Min R:R   : 1.2×")
+    print(f"  Dashboard : http://localhost:3000")
+    print("══════════════════════════════════════════════")
     print("")
     server = HTTPServer(('localhost', 5000), FullHandler)
     server.serve_forever()
