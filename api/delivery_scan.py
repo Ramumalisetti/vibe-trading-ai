@@ -136,11 +136,11 @@ def run_delivery_scan():
             df.rename(columns={deliv_col: 'DELIV_PER'}, inplace=True)
 
     # ── Step 3: Build merged dataframe ────────────────────────────────────────
-    today_needed = ['SYMBOL', 'CLOSE', 'PREVCLOSE', 'TOTTRDQTY', 'DELIV_QTY', 'DELIV_PER']
+    today_needed = ['SYMBOL', 'CLOSE_PRICE', 'PREV_CLOSE', 'TTL_TRD_QNTY', 'DELIV_QTY', 'DELIV_PER']
     # Handle alternate column spellings
-    close_col   = get_col(bhav_today, 'CLOSE', ' CLOSE')
-    prev_col    = get_col(bhav_today, 'PREVCLOSE', 'PREV_CLOSE', ' PREVCLOSE')
-    vol_col     = get_col(bhav_today, 'TOTTRDQTY', ' TOTTRDQTY')
+    close_col   = get_col(bhav_today, 'CLOSE_PRICE', 'CLOSE', ' CLOSE')
+    prev_col    = get_col(bhav_today, 'PREV_CLOSE', 'PREVCLOSE', ' PREVCLOSE')
+    vol_col     = get_col(bhav_today, 'TTL_TRD_QNTY', 'TOTTRDQTY', ' TOTTRDQTY')
     deliv_q_col = get_col(bhav_today, 'DELIV_QTY', ' DELIV_QTY')
     deliv_p_col = get_col(bhav_today, 'DELIV_PER', ' DELIV_PER')
     sym_col     = get_col(bhav_today, 'SYMBOL', ' SYMBOL')
