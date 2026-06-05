@@ -3,15 +3,35 @@ Local API Server — Full Nifty 500 Universe
 Run this before using the dashboard locally.
 Dashboard: http://localhost:3000
 """
-from http.server import HTTPServer
-from api.scan import handler, analyze_stock, TICKERS, SIGNAL_ORDER, WIN_RATES
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from api.scan import analyze_stock, TICKERS, SIGNAL_ORDER, WIN_RATES
+from api.delivery_scan import run_delivery_scan
 import concurrent.futures, json
 
 FULL_TICKERS = list(dict.fromkeys(TICKERS))
 
 
-class FullHandler(handler):
+class RouterHandler(BaseHTTPRequestHandler):
+    def log_message(self, fmt, *args): pass
+
     def do_GET(self):
+        if self.path == '/api/delivery_scan' or self.path == '/api/delivery_scan?':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            data, err = run_delivery_scan()
+            if err:
+                self.wfile.write(json.dumps({"status": "error", "error": err}).encode())
+            else:
+                self.wfile.write(json.dumps({
+                    "status": "success",
+                    "total":  len(data),
+                    "data":   data,
+                }).encode())
+            return
+            
+        # Default to /api/scan
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -49,11 +69,9 @@ if __name__ == "__main__":
     print("    Vibe Trading AI — Pre-Rally AI Scanner")
     print("══════════════════════════════════════════════")
     print(f"  Universe  : {total} Nifty 500 stocks")
-    print(f"  Signals   : 10 (inc. Pocket Pivot, BB Squeeze, NR7)")
-    print(f"  Stop Loss : 1.5× ATR (dynamic)")
-    print(f"  Min R:R   : 1.2×")
+    print(f"  Endpoints : /api/scan, /api/delivery_scan")
     print(f"  Dashboard : http://localhost:3000")
     print("══════════════════════════════════════════════")
     print("")
-    server = HTTPServer(('localhost', 5000), FullHandler)
+    server = HTTPServer(('localhost', 5000), RouterHandler)
     server.serve_forever()
