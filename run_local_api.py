@@ -45,7 +45,7 @@ class RouterHandler(BaseHTTPRequestHandler):
                 if res:
                     all_setups.extend(res)
 
-        grade_order = {"A": 0, "B": 1, "C": 2}
+        grade_order = {"A+": 0, "A": 1, "B": 2, "C": 3}
         all_setups.sort(key=lambda x: (
             SIGNAL_ORDER.index(x['signal']) if x['signal'] in SIGNAL_ORDER else 99,
             grade_order.get(x.get('grade', 'C'), 2),
@@ -65,13 +65,13 @@ class RouterHandler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     total = len(FULL_TICKERS)
     print("")
-    print("══════════════════════════════════════════════")
-    print("    Vibe Trading AI — Pre-Rally AI Scanner")
-    print("══════════════════════════════════════════════")
+    print("==============================================")
+    print("  Vibe Trading AI - Multibagger Scanner")
+    print("==============================================")
     print(f"  Universe  : {total} Nifty 500 stocks")
     print(f"  Endpoints : /api/scan, /api/delivery_scan")
     print(f"  Dashboard : http://localhost:3000")
-    print("══════════════════════════════════════════════")
+    print("==============================================")
     print("")
     server = HTTPServer(('localhost', 5000), RouterHandler)
     server.serve_forever()
