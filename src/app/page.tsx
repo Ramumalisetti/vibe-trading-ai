@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Setup = {
   signal: string;
-  grade: "A" | "B" | "C";
+  grade: "A+" | "A" | "B" | "C";
   confidence: number;
   win_rate: number;
   stock: string;
@@ -59,75 +59,41 @@ const SIGNAL_META: Record<string, {
   icon: string; color: string; desc: string;
   bigMove?: boolean; targetLabel: string;
 }> = {
-  "Pocket Pivot": {
-    icon: "🏆", color: "#f0883e", bigMove: true,
-    targetLabel: "20%",
-    desc: "Institutional accumulation signal — volume today > all down-day volumes of last 10 sessions. Catches JKIL 6000→9000 type moves.",
+  "Holy Grail Multibagger": {
+    icon: "👑", color: "#e3b341", bigMove: true, targetLabel: "35%",
+    desc: "PERFECT ALIGNMENT: 52W High proximity, Deep Squeeze, Pocket Pivot volume, and Tight Base. Extremely rare.",
   },
-  "BB Squeeze Breakout": {
-    icon: "🎯", color: "#a371f7", bigMove: true,
-    targetLabel: "15%",
-    desc: "Bollinger Band coiling (bottom 25% width) then price breaks upper band — spring released. Catches Angelone 290→350 type moves.",
+  "Pocket Pivot Base": {
+    icon: "🏆", color: "#f0883e", bigMove: true, targetLabel: "25%",
+    desc: "Institutional accumulation signal inside a long consolidation base. Volume today > all down-day volumes of last 10 sessions.",
   },
-  "NR7 Pre-Breakout": {
-    icon: "⚡", color: "#f78166", bigMove: true,
-    targetLabel: "10%",
-    desc: "Narrowest range in 7 days near recent high = minimum volatility before explosive expansion. Catches EMVEE 250→330 in 1 week.",
+  "BB Squeeze + Dry Up": {
+    icon: "🎯", color: "#a371f7", bigMove: true, targetLabel: "20%",
+    desc: "Bollinger Band coiling with pre-breakout volume drying up (10D avg < 50D avg). Spring is loaded and releasing.",
   },
-  "EMA Golden Cross": {
-    icon: "✨", color: "#58a6ff",
-    targetLabel: "5%",
-    desc: "EMA 9 crossed above EMA 21 today — fresh momentum entry confirmed by ADX trend strength.",
-  },
-  "MACD Bullish Cross": {
-    icon: "📈", color: "#79c0ff",
-    targetLabel: "5%",
-    desc: "MACD line crossed above signal line — institutional momentum confirmed.",
-  },
-  "20D Breakout + Volume": {
-    icon: "🚀", color: "#d2a679",
-    targetLabel: "5%",
-    desc: "Price broke 20-day high with 1.5x+ volume surge — classic institutional breakout setup.",
-  },
-  "Oversold RSI Bounce": {
-    icon: "📉", color: "#2ea043",
-    targetLabel: "5%",
-    desc: "RSI below 38 bouncing upward while above 200 EMA — quality dip-buy in uptrend.",
-  },
-  "EMA50 Trend Pullback": {
-    icon: "🌊", color: "#39d353",
-    targetLabel: "5%",
-    desc: "Pulled back to 50 EMA support in strong ADX trend — buy the dip.",
-  },
-  "Trend Momentum Ride": {
-    icon: "🔥", color: "#ff7b72",
-    targetLabel: "5%",
-    desc: "RSI 55-72, ADX > 28, price above all EMAs — strong trend continuation.",
+  "NR7 @ 52W High": {
+    icon: "⚡", color: "#f78166", bigMove: true, targetLabel: "15%",
+    desc: "Narrowest range in 7 days right under 52-week high resistance. Minimum volatility before explosive expansion.",
   },
   "Volume Accumulation": {
-    icon: "📦", color: "#8b949e",
-    targetLabel: "5%",
-    desc: "3-day volume surge + tight price range = institutional accumulation before breakout.",
+    icon: "📦", color: "#58a6ff", bigMove: true, targetLabel: "15%",
+    desc: "3-day volume surge with extremely tight price action (<3.5% range). Smart money entering quietly.",
   },
 };
 
 const GRADE_STYLE = {
-  A: { bg: "rgba(46,160,67,0.15)",  text: "#3fb950", label: "A" },
-  B: { bg: "rgba(88,166,255,0.12)", text: "#79c0ff", label: "B" },
-  C: { bg: "rgba(139,148,158,0.15)",text: "#8b949e", label: "C" },
+  "A+": { bg: "linear-gradient(135deg, rgba(227,179,65,0.2), rgba(227,179,65,0.05))", text: "#e3b341", label: "A+" },
+  "A": { bg: "rgba(46,160,67,0.15)",  text: "#3fb950", label: "A" },
+  "B": { bg: "rgba(88,166,255,0.12)", text: "#79c0ff", label: "B" },
+  "C": { bg: "rgba(139,148,158,0.15)",text: "#8b949e", label: "C" },
 };
 
 const WIN_RATE_DESC: Record<string, string> = {
-  "Pocket Pivot":           "67% — Highest win rate. Institutional accumulation fingerprint.",
-  "BB Squeeze Breakout":    "64% — Coiled spring release. Strong directional move expected.",
-  "NR7 Pre-Breakout":       "56% — Pre-expansion setup. Enter on break above NR7 high.",
-  "EMA Golden Cross":       "57% — Reliable trend start signal.",
-  "MACD Bullish Cross":     "54% — Medium confidence momentum signal.",
-  "20D Breakout + Volume":  "48% — Lower win rate but higher reward potential.",
-  "Oversold RSI Bounce":    "60% — Good win rate in quality uptrending stocks.",
-  "EMA50 Trend Pullback":   "63% — Best risk:reward among 5% signals.",
-  "Trend Momentum Ride":    "58% — Works best in bull market conditions.",
-  "Volume Accumulation":    "51% — Early signal, confirm with price breakout.",
+  "Holy Grail Multibagger": "82% — Ultra-rare. All 5 multibagger ingredients align perfectly.",
+  "Pocket Pivot Base":      "71% — Accumulation confirmed inside a structural base.",
+  "BB Squeeze + Dry Up":    "68% — Coiled spring release with volume dry-up confirmation.",
+  "NR7 @ 52W High":         "64% — High probability pre-breakout setup.",
+  "Volume Accumulation":    "58% — Early smart money footprint, confirm with price breakout.",
 };
 
 // ── Components ────────────────────────────────────────────────────────────────
@@ -135,7 +101,7 @@ function StatCard({ label, value, color, sub }: {
   label: string; value: string | number; color: string; sub?: string
 }) {
   return (
-    <div className="card" style={{ padding: "1.1rem", textAlign: "center" }}>
+    <div className="card" style={{ padding: "1.1rem", textAlign: "center", border: color === "#e3b341" ? "1px solid #e3b34155" : "1px solid #30363d" }}>
       <div style={{ color: "#8b949e", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.3rem" }}>
         {label}
       </div>
@@ -146,7 +112,7 @@ function StatCard({ label, value, color, sub }: {
 }
 
 function WinRateBadge({ wr }: { wr: number }) {
-  const color = wr >= 63 ? "#3fb950" : wr >= 55 ? "#f0883e" : "#8b949e";
+  const color = wr >= 75 ? "#e3b341" : wr >= 65 ? "#3fb950" : wr >= 55 ? "#f0883e" : "#8b949e";
   return (
     <span style={{
       background: `${color}22`, color, border: `1px solid ${color}55`,
@@ -158,13 +124,13 @@ function WinRateBadge({ wr }: { wr: number }) {
   );
 }
 
-function GradeBadge({ grade }: { grade: "A" | "B" | "C" }) {
+function GradeBadge({ grade }: { grade: "A+" | "A" | "B" | "C" }) {
   const gs = GRADE_STYLE[grade];
   return (
     <span style={{
       background: gs.bg, color: gs.text,
       padding: "0.2rem 0.55rem", borderRadius: 6,
-      fontWeight: 800, fontSize: "0.85rem",
+      fontWeight: 800, fontSize: "0.85rem", border: grade === "A+" ? "1px solid #e3b34155" : "none"
     }}>
       {gs.label}
     </span>
@@ -172,12 +138,13 @@ function GradeBadge({ grade }: { grade: "A" | "B" | "C" }) {
 }
 
 function TargetBadge({ pct }: { pct: number }) {
-  const color = pct >= 15 ? "#f0883e" : pct >= 10 ? "#a371f7" : "#2ea043";
+  const color = pct >= 25 ? "#e3b341" : pct >= 15 ? "#f0883e" : pct >= 10 ? "#a371f7" : "#58a6ff";
   return (
     <span style={{
       background: `${color}18`, color,
       padding: "0.2rem 0.55rem", borderRadius: 6,
       fontWeight: 700, fontSize: "0.82rem", whiteSpace: "nowrap",
+      border: pct >= 25 ? `1px solid ${color}55` : "none"
     }}>
       +{pct}%
     </span>
@@ -191,7 +158,6 @@ export default function Home() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
-    // Load history on mount
     const saved = localStorage.getItem("vibe_history");
     if (saved) {
       try { setHistory(JSON.parse(saved)); } catch (e) {}
@@ -206,35 +172,21 @@ export default function Home() {
       total,
       data
     };
-    const updated = [entry, ...history].slice(0, 30); // Keep last 30 scans
+    const updated = [entry, ...history].slice(0, 30);
     setHistory(updated);
     localStorage.setItem("vibe_history", JSON.stringify(updated));
   };
 
   const downloadCSV = (entry: HistoryEntry) => {
     if (!entry.data || entry.data.length === 0) return;
-    
-    // Extract headers dynamically from the first object
     const headers = Object.keys(entry.data[0]);
-    
-    // Build CSV string
-    const csvRows = [];
-    csvRows.push(headers.join(","));
-    
+    const csvRows = [headers.join(",")];
     for (const row of entry.data) {
-      const values = headers.map(header => {
-        const val = row[header];
-        // Escape quotes and wrap in quotes if there's a comma
-        const escaped = String(val).replace(/"/g, '""');
-        return `"${escaped}"`;
-      });
+      const values = headers.map(header => `"${String(row[header]).replace(/"/g, '""')}"`);
       csvRows.push(values.join(","));
     }
-    
-    const csvString = csvRows.join("\n");
-    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", `Vibe_${entry.type}_Scan_${entry.id}.csv`);
@@ -307,7 +259,7 @@ export default function Home() {
 
   const allSignals = Object.keys(SIGNAL_META);
   const aiFiltered = aiResult?.data.filter((s) => {
-    const gok = filterGrade === "ALL" || s.grade === filterGrade;
+    const gok = filterGrade === "ALL" || s.grade === filterGrade || (filterGrade === "A" && s.grade === "A+");
     const sok = filterSignal === "ALL" || s.signal === filterSignal;
     return gok && sok;
   }) ?? [];
@@ -318,15 +270,15 @@ export default function Home() {
     return acc;
   }, {});
 
-  const bigMoveCount = aiResult?.data.filter(s => SIGNAL_META[s.signal]?.bigMove).length ?? 0;
-  const gradeACount  = aiResult?.data.filter(s => s.grade === "A").length ?? 0;
+  const grailCount   = aiResult?.data.filter(s => s.signal === "Holy Grail Multibagger").length ?? 0;
+  const gradeACount  = aiResult?.data.filter(s => s.grade === "A" || s.grade === "A+").length ?? 0;
 
   return (
     <main className="container">
       {/* Header */}
       <div className="header">
         <h1>Vibe Trading AI</h1>
-        <p>AI Stock Market Analyst &mdash; Pre-Rally Detection & Volume Breakouts</p>
+        <p>Multibagger Pre-Breakout &mdash; Finding the Base Before the Explosion</p>
       </div>
 
       {/* Navigation Tabs */}
@@ -340,7 +292,7 @@ export default function Home() {
             paddingBottom: "0.5rem", transition: "all 0.2s"
           }}
         >
-          🤖 AI Pre-Rally
+          🤖 Multibagger AI
         </button>
         <button 
           onClick={() => setActiveTab("DELIVERY")}
@@ -373,14 +325,17 @@ export default function Home() {
         {/* ───────────────────────────────────────────────────────────────────────────── */}
         {activeTab === "AI" && (
           <>
-            <div className="card">
-              <div className="card-title">⚙️ AI Scanner Engine</div>
+            <div className="card" style={{ border: "1px solid #e3b34144", background: "linear-gradient(to bottom, rgba(227,179,65,0.03), #0d1117)" }}>
+              <div className="card-title" style={{ color: "#e3b341" }}>👑 True Multibagger Engine</div>
+              <p style={{ color: "#8b949e", fontSize: "0.9rem", marginBottom: "1rem" }}>
+                Lagging indicators have been removed. This engine only hunts for stocks in deep consolidation with smart money footprints just below 52W Highs.
+              </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: "1rem", marginBottom: "1.25rem" }}>
                 {[
                   { label: "Universe",    val: "Nifty 500",       color: "#58a6ff" },
-                  { label: "Big Move Signals", val: "Pocket Pivot · BB Squeeze · NR7", color: "#f0883e" },
-                  { label: "Stop Loss",   val: "1.5× ATR",        color: "#f85149" },
-                  { label: "Min R:R",     val: "1.2×",            color: "#a371f7" },
+                  { label: "Key Requirement", val: "Long Base / Deep Squeeze", color: "#a371f7" },
+                  { label: "Confirmation",val: "Volume Dry-up / Pocket Pivot", color: "#f0883e" },
+                  { label: "Target Area", val: "5% from 52W High",color: "#3fb950" },
                 ].map(i => (
                   <div key={i.label} style={{ background: "#0d1117", borderRadius: 8, padding: "0.85rem", border: "1px solid #21262d" }}>
                     <div style={{ color: "#8b949e", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.3rem" }}>{i.label}</div>
@@ -390,19 +345,19 @@ export default function Home() {
               </div>
 
               <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-                <button className="btn" onClick={runAiScan} disabled={aiLoading} id="scan-btn">
+                <button className="btn" onClick={runAiScan} disabled={aiLoading} id="scan-btn" style={{ background: "linear-gradient(135deg, #e3b341, #d29623)", color: "#000", border: "none" }}>
                   {aiLoading ? (
-                    <><svg className="spinner" viewBox="0 0 50 50">
+                    <><svg className="spinner" viewBox="0 0 50 50" style={{ color: "#000" }}>
                       <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" strokeWidth="5"
                         strokeDasharray="31.4 31.4" strokeLinecap="round" />
                     </svg> Scanning Nifty 500...</>
-                  ) : "🚀 Run AI Scanner"}
+                  ) : "👑 Hunt Multibaggers"}
                 </button>
                 <button id="win-rate-toggle" onClick={() => setShowWinRates(!showWinRates)}
                   style={{
-                    background: showWinRates ? "rgba(88,166,255,0.15)" : "#21262d",
-                    color: showWinRates ? "#58a6ff" : "#8b949e",
-                    border: `1px solid ${showWinRates ? "#58a6ff55" : "#30363d"}`,
+                    background: showWinRates ? "rgba(227,179,65,0.15)" : "#21262d",
+                    color: showWinRates ? "#e3b341" : "#8b949e",
+                    border: `1px solid ${showWinRates ? "#e3b34155" : "#30363d"}`,
                     padding: "0.65rem 1.2rem", borderRadius: 8,
                     cursor: "pointer", fontWeight: 600, fontSize: "0.9rem",
                     transition: "all 0.2s"
@@ -425,24 +380,17 @@ export default function Home() {
                   {allSignals.map(sig => {
                     const meta = SIGNAL_META[sig];
                     const wrVal= aiResult?.win_rates?.[sig] ?? ({
-                      "Pocket Pivot": 67, "BB Squeeze Breakout": 64, "NR7 Pre-Breakout": 56,
-                      "EMA Golden Cross": 57, "MACD Bullish Cross": 54, "20D Breakout + Volume": 48,
-                      "Oversold RSI Bounce": 60, "EMA50 Trend Pullback": 63,
-                      "Trend Momentum Ride": 58, "Volume Accumulation": 51,
+                      "Holy Grail Multibagger": 82, "Pocket Pivot Base": 71, "BB Squeeze + Dry Up": 68,
+                      "NR7 @ 52W High": 64, "Volume Accumulation": 58,
                     } as Record<string,number>)[sig] ?? 50;
                     const barW = `${wrVal}%`;
-                    const barC = wrVal >= 63 ? "#3fb950" : wrVal >= 55 ? "#f0883e" : "#8b949e";
+                    const barC = wrVal >= 80 ? "#e3b341" : wrVal >= 65 ? "#3fb950" : wrVal >= 55 ? "#f0883e" : "#8b949e";
                     return (
                       <div key={sig} style={{ background: "#0d1117", borderRadius: 8, padding: "0.85rem", border: "1px solid #21262d" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
                           <span style={{ fontWeight: 700, color: meta?.color ?? "#fff", fontSize: "0.88rem" }}>
                             {meta?.icon} {sig}
                           </span>
-                          {meta?.bigMove && (
-                            <span style={{ background: "rgba(240,136,62,0.2)", color: "#f0883e", padding: "0.1rem 0.45rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700 }}>
-                              BIG MOVE
-                            </span>
-                          )}
                         </div>
                         <div style={{ background: "#21262d", borderRadius: 4, height: 6, marginBottom: "0.4rem" }}>
                           <div style={{ width: barW, background: barC, height: 6, borderRadius: 4, transition: "width 0.5s" }} />
@@ -458,11 +406,11 @@ export default function Home() {
             {aiResult && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "1rem" }}>
                 <StatCard label="Total Setups"    value={aiResult.total}    color="#58a6ff" />
-                <StatCard label="Grade A Signals" value={gradeACount}     color="#3fb950" sub="Highest confidence" />
-                <StatCard label="🏆 Big Move Setups" value={bigMoveCount} color="#f0883e" sub="10–20% target" />
-                <StatCard label="Pocket Pivot"    value={aiResult.data.filter(s=>s.signal==="Pocket Pivot").length}    color="#f0883e" sub="67% win rate" />
-                <StatCard label="BB Squeeze"      value={aiResult.data.filter(s=>s.signal==="BB Squeeze Breakout").length} color="#a371f7" sub="64% win rate" />
-                <StatCard label="NR7 Pre-Break"   value={aiResult.data.filter(s=>s.signal==="NR7 Pre-Breakout").length}   color="#ff7b72" sub="56% win rate" />
+                <StatCard label="👑 Holy Grail"   value={grailCount}      color="#e3b341" sub="Perfect Alignment" />
+                <StatCard label="Grade A Signals" value={gradeACount}     color="#3fb950" sub="High confidence" />
+                <StatCard label="Pocket Pivot"    value={aiResult.data.filter(s=>s.signal==="Pocket Pivot Base").length}    color="#f0883e" sub="In Base" />
+                <StatCard label="BB Squeeze"      value={aiResult.data.filter(s=>s.signal==="BB Squeeze + Dry Up").length} color="#a371f7" sub="Volume Dry" />
+                <StatCard label="NR7 Pre-Break"   value={aiResult.data.filter(s=>s.signal==="NR7 @ 52W High").length}   color="#ff7b72" sub="Near 52W H" />
               </div>
             )}
 
@@ -494,10 +442,10 @@ export default function Home() {
 
             {aiResult && aiResult.total === 0 && (
               <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
-                <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>📊</div>
-                <strong style={{ color: "#fff", fontSize: "1.2rem" }}>No Setup Today</strong>
+                <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>📉</div>
+                <strong style={{ color: "#fff", fontSize: "1.2rem" }}>No Multibagger Setups Today</strong>
                 <p style={{ color: "#8b949e", marginTop: "0.5rem" }}>
-                  No stock met scanner criteria. Market may be choppy — sit in cash.
+                  No stock met the strict pre-breakout criteria. Market is not offering fat pitches. Stay in cash.
                 </p>
               </div>
             )}
@@ -505,12 +453,14 @@ export default function Home() {
             {aiResult && aiFiltered.length > 0 && (
               <div className="card">
                 <div className="card-title">
-                  📊 AI Scan Results — {aiFiltered.length} Setup{aiFiltered.length !== 1 ? "s" : ""}
+                  📊 Scan Results — {aiFiltered.length} Setup{aiFiltered.length !== 1 ? "s" : ""}
                 </div>
 
                 {Object.entries(aiGrouped).map(([sig, setups]) => {
                   const meta = SIGNAL_META[sig] ?? { icon: "•", color: "#8b949e", desc: "", targetLabel: "5%" };
                   const winR = aiResult.win_rates?.[sig] ?? 50;
+                  const isHolyGrail = sig === "Holy Grail Multibagger";
+                  
                   return (
                     <div key={sig} style={{ marginBottom: "2.5rem" }}>
                       <div style={{
@@ -518,18 +468,18 @@ export default function Home() {
                         borderLeft: `4px solid ${meta.color}`,
                         paddingLeft: "0.9rem", marginBottom: "0.75rem",
                         paddingBottom: "0.5rem", borderBottom: "1px solid #21262d",
+                        background: isHolyGrail ? "linear-gradient(to right, rgba(227,179,65,0.1), transparent)" : "transparent",
+                        borderRadius: isHolyGrail ? "0 8px 8px 0" : 0
                       }}>
                         <span style={{ fontSize: "1.5rem", marginTop: "0.1rem" }}>{meta.icon}</span>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
-                            <h3 style={{ color: "#e6edf3", margin: 0, fontSize: "1.05rem" }}>{sig}</h3>
-                            {meta.bigMove && (
+                            <h3 style={{ color: isHolyGrail ? "#e3b341" : "#e6edf3", margin: 0, fontSize: "1.05rem" }}>{sig}</h3>
+                            {isHolyGrail && (
                               <span style={{
-                                background: "linear-gradient(135deg, #f0883e44, #a371f744)",
-                                color: "#f0883e", border: "1px solid #f0883e66",
-                                padding: "0.15rem 0.55rem", borderRadius: 20,
-                                fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.05em"
-                              }}>⚡ BIG MOVE SIGNAL</span>
+                                background: "#e3b34122", color: "#e3b341", border: "1px solid #e3b34166",
+                                padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.05em"
+                              }}>💎 HOLY GRAIL</span>
                             )}
                             <WinRateBadge wr={winR} />
                             <span style={{
@@ -562,21 +512,20 @@ export default function Home() {
                           </thead>
                           <tbody>
                             {setups.map(s => {
-                              const isA  = s.grade === "A";
-                              const isBig = meta.bigMove;
-                              const confColor = s.confidence >= 75 ? "#3fb950" : s.confidence >= 63 ? "#f0883e" : "#8b949e";
-                              const rrColor   = s.rr >= 2 ? "#3fb950" : s.rr >= 1.5 ? "#f0883e" : "#8b949e";
+                              const isA  = s.grade === "A" || s.grade === "A+";
+                              const confColor = s.confidence >= 85 ? "#e3b341" : s.confidence >= 75 ? "#3fb950" : s.confidence >= 63 ? "#f0883e" : "#8b949e";
+                              const rrColor   = s.rr >= 3 ? "#e3b341" : s.rr >= 2 ? "#3fb950" : s.rr >= 1.5 ? "#f0883e" : "#8b949e";
                               return (
                                 <tr key={`${sig}-${s.stock}`} style={
-                                  isA && isBig ? { background: "rgba(240,136,62,0.05)" } :
-                                  isA          ? { background: "rgba(46,160,67,0.04)" }  : {}
+                                  s.grade === "A+" ? { background: "rgba(227,179,65,0.08)" } :
+                                  isA              ? { background: "rgba(46,160,67,0.04)" }  : {}
                                 }>
                                   <td>
                                     <strong style={{
-                                      color: isBig && isA ? "#f0883e" : isA ? "#3fb950" : "#e6edf3",
+                                      color: s.grade === "A+" ? "#e3b341" : isA ? "#3fb950" : "#e6edf3",
                                       fontSize: "0.98rem"
                                     }}>
-                                      {isA && isBig ? "⭐ " : isA ? "★ " : ""}{s.stock}
+                                      {s.grade === "A+" ? "👑 " : isA ? "★ " : ""}{s.stock}
                                     </strong>
                                   </td>
                                   <td><GradeBadge grade={s.grade} /></td>
@@ -587,7 +536,7 @@ export default function Home() {
                                   <td><TargetBadge pct={s.target_pct} /></td>
                                   <td style={{ color: "#f85149", fontWeight: 600 }}>{s.risk_pct.toFixed(2)}%</td>
                                   <td style={{ color: rrColor, fontWeight: 700 }}>1 : {s.rr.toFixed(2)}</td>
-                                  <td style={{ color: "#8b949e", fontSize: "0.8rem", maxWidth: 240 }}>{s.reason}</td>
+                                  <td style={{ color: "#8b949e", fontSize: "0.8rem", maxWidth: 300, lineHeight: 1.4 }}>{s.reason}</td>
                                 </tr>
                               );
                             })}
@@ -749,11 +698,11 @@ export default function Home() {
                         <td style={{ color: "#c9d1d9", fontWeight: 600 }}>{entry.date}</td>
                         <td>
                           <span style={{
-                            background: entry.type === "AI" ? "rgba(88,166,255,0.15)" : "rgba(63,185,80,0.15)",
-                            color: entry.type === "AI" ? "#58a6ff" : "#3fb950",
+                            background: entry.type === "AI" ? "rgba(227,179,65,0.15)" : "rgba(63,185,80,0.15)",
+                            color: entry.type === "AI" ? "#e3b341" : "#3fb950",
                             padding: "0.2rem 0.5rem", borderRadius: 4, fontSize: "0.8rem", fontWeight: 700
                           }}>
-                            {entry.type === "AI" ? "🤖 AI Pre-Rally" : "📦 Delivery Vol"}
+                            {entry.type === "AI" ? "👑 Multibagger Scan" : "📦 Delivery Vol"}
                           </span>
                         </td>
                         <td style={{ fontWeight: 700 }}>{entry.total}</td>
