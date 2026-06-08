@@ -334,7 +334,7 @@ def run_scan(tickers):
                 group_by="ticker",
                 auto_adjust=True,
                 progress=False,
-                threads=True,
+                threads=False,  # FIX: Threading often hangs on Vercel serverless
             )
         except Exception as e:
             # FIX: log failed chunks instead of silently swallowing the error
@@ -381,8 +381,8 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
 
         # VERCEL FIX: Serverless limits us to 30s execution time.
-        # We must limit the live scan to the top 60 stocks.
-        VERCEL_TICKERS = TICKERS[:60]
+        # We must limit the live scan to the top 50 stocks (fits in 1 network chunk).
+        VERCEL_TICKERS = TICKERS[:50]
         all_setups = run_scan(VERCEL_TICKERS)
 
         grade_order = {"A+": 0, "A": 1, "B": 2, "C": 3}
